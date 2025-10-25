@@ -1,37 +1,42 @@
+/* ==================================
+ * FILE: src/components/AdminMenuItemCard.jsx
+ * ================================== */
+
 import React from 'react';
-import { FaEdit, FaTrashAlt } from 'react-icons/fa'; // Added icons for cleaner design
+import { FaEdit, FaTrashAlt } from 'react-icons/fa'; 
 
 // ================================================
-// !!! VERCEL DEPLOYMENT FIX: API URLS !!!
-// ================================================
+// 🟢 FINAL FIX: VERCEL DEPLOYMENT FIX: API URLS 🟢
 // This creates the root URL (without '/api') for serving images from '/uploads'
+// We use the fallback of 10000 here for consistency, but the live deployment uses VITE_API_URL.
+// ================================================
 const API_ROOT_URL = (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace("/api", "") : 'http://localhost:10000');
 // ================================================
 // !!! END OF FIX !!!
 // ================================================
 
 
-// **UPDATED HELPER FUNCTION TO USE ENV VARIABLE**
+// **FINAL HELPER FUNCTION TO USE ENV VARIABLE**
 const getFullImageUrl = (imagePath) => {
     if (!imagePath) return '';
-    // Use the new API_ROOT_URL variable
-    const BASE_UPLOAD_URL = `${API_ROOT_URL}/uploads/`;
 
     // Check if the path is already a full URL (starts with http or https)
     if (imagePath.startsWith('http')) {
         return imagePath;
     }
-    // Check if it's a relative path (starts with /), if so prepend host.
-    if (imagePath.startsWith('/')) {
+    
+    // Check if it's a relative path (starts with /uploads/), and prepend host.
+    if (imagePath.startsWith('/uploads/')) {
         return `${API_ROOT_URL}${imagePath}`;
     }
-    // If it's just the filename/ID, prepend the full path.
-    return BASE_UPLOAD_URL + imagePath;
+    
+    // If it's just the filename/ID (e.g., 1765487654.jpg), prepend the full path.
+    return `${API_ROOT_URL}/uploads/${imagePath}`;
 };
-// END NEW HELPER
+
 
 const AdminMenuItemCard = ({ item, onEdit, onDelete }) => {
-    // 💡 FIX: Use the helper to get the correct, loadable image URL
+    // 💡 FIX APPLIED: Use the helper to get the correct, loadable image URL
     const imageUrl = getFullImageUrl(item.imageUrl); 
 
     // Determine the color for the stock count based on its value

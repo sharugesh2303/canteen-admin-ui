@@ -10,7 +10,7 @@ import { LuLogOut, LuMenu, LuX } from 'react-icons/lu';
 import { VscFeedback } from "react-icons/vsc";
 import { MdCampaign, MdFastfood, MdLocalDrink, MdOutlineBreakfastDining, MdOutlineLunchDining, MdOutlineDinnerDining, MdMenuBook } from "react-icons/md"; 
 import { FaPlusCircle, FaUtensils, FaClipboardList, FaChartLine, FaSearch, FaClock, FaRedo, FaQuestionCircle, FaArrowLeft } from 'react-icons/fa'; 
-import AdminMenuItemCard from '../components/AdminMenuItemCard.jsx';
+import AdminMenuItemCard from '../components/AdminMenuItemCard.jsx'; // Make sure this import is correct
 
 // ================================================
 // 🟢 VERCEL DEPLOYMENT FIX: API URLS 🟢
@@ -20,7 +20,6 @@ import AdminMenuItemCard from '../components/AdminMenuItemCard.jsx';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000/api';
 
 // API_ROOT_URL is for images and needs the base domain (without /api).
-// It correctly handles the removal of '/api' or falls back to localhost base.
 const API_ROOT_URL = (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace("/api", "") : 'http://localhost:10000');
 // ================================================
 // !!! END OF FIX !!!
@@ -46,26 +45,23 @@ const getAdminAuthHeaders = (token) => ({
 });
 
 // ================================================
-// 🟢 CRITICAL FIX: Image URL Construction 🟢
+// 🟢 CRITICAL FIX: Image URL Construction (Duplicated for availability) 🟢
 // This function constructs the full URL for assets served by the backend.
 // ================================================
 const getFullImageUrl = (imagePath) => {
     if (!imagePath) return '';
     
-    // Check if it's already a full URL (e.g., from a CDN or external service)
+    // Check if the path is already a full URL (starts with http or https)
     if (imagePath.startsWith('http')) {
         return imagePath;
     }
     
-    // Construct the final URL using the dynamic API_ROOT_URL
-    // If imagePath is '/uploads/item.jpg', this resolves to:
-    // https://your-render-backend.onrender.com/uploads/item.jpg
-    // If imagePath is 'item.jpg', we append the '/uploads/' path ourselves
+    // Check if it's a relative path (starts with /uploads/), and prepend host.
     if (imagePath.startsWith('/uploads/')) {
-         return `${API_ROOT_URL}${imagePath}`;
+        return `${API_ROOT_URL}${imagePath}`;
     }
     
-    // Fallback if only the filename is stored (less likely if you used the API_ROOT_URL fix)
+    // If it's just the filename/ID (e.g., 1765487654.jpg), prepend the full path.
     return `${API_ROOT_URL}/uploads/${imagePath}`;
 };
 // ================================================
@@ -511,6 +507,7 @@ const AdminDashboardPage = () => {
                                 // --- Search Results ---
                                 groupedAndFilteredItems.searchResults.length > 0 ? (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                                        {/* This renders the item cards */}
                                         {groupedAndFilteredItems.searchResults.map((item) => <AdminMenuItemCard key={item._id} item={item} onEdit={() => navigate(`/admin/menu/edit/${item._id}`)} onDelete={handleDeleteItem} />)}
                                     </div>
                                 ) : ( <p className="text-slate-400 text-center mt-10 text-lg">No items found matching "{searchTerm}".</p> )
@@ -577,6 +574,7 @@ const AdminDashboardPage = () => {
                                                             // Show Items Grid for selected subcategory
                                                             itemsOrSubcategories[selectedAdminSubCategoryId] && itemsOrSubcategories[selectedAdminSubCategoryId].length > 0 ? (
                                                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pl-4">
+                                                                    {/* This renders the item cards */}
                                                                     {itemsOrSubcategories[selectedAdminSubCategoryId].map((item) => <AdminMenuItemCard key={item._id} item={item} onEdit={() => navigate(`/admin/menu/edit/${item._id}`)} onDelete={handleDeleteItem} />)}
                                                                 </div>
                                                             ) : ( <p className="text-slate-500 ml-6">No items found in this subcategory.</p> )
@@ -585,6 +583,7 @@ const AdminDashboardPage = () => {
                                                         // --- Other Categories View: Items Grid ---
                                                          Array.isArray(itemsOrSubcategories) && itemsOrSubcategories.length > 0 ? (
                                                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pl-4">
+                                                                {/* This renders the item cards */}
                                                                 {itemsOrSubcategories.map((item) => <AdminMenuItemCard key={item._id} item={item} onEdit={() => navigate(`/admin/menu/edit/${item._id}`)} onDelete={handleDeleteItem} />)}
                                                             </div>
                                                         ) : ( <p className="text-slate-500 ml-6">No items in this category.</p> )
