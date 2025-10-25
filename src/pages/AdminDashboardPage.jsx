@@ -40,7 +40,9 @@ const getAdminAuthHeaders = (token) => ({
     'Content-Type': 'application/json',
 });
 
-// **HELPER FUNCTION FOR CORRECTING IMAGE URL (FIXED)**
+// ================================================
+// !!! THIS FUNCTION IS NOW FIXED !!!
+// ================================================
 const getFullImageUrl = (imagePath) => {
     if (!imagePath) return '';
     // Use the new API_ROOT_URL variable
@@ -54,7 +56,9 @@ const getFullImageUrl = (imagePath) => {
     }
     return BASE_UPLOAD_URL + imagePath;
 };
-// **END HELPER**
+// ================================================
+// !!! END OF FIX !!!
+// ================================================
 
 // --- SparkleOverlay Component (omitted for brevity) ---
 const SparkleOverlay = () => {
@@ -185,7 +189,6 @@ const AdminDashboardPage = () => {
     // --- Service Hours Functions ---
     const fetchServiceHours = async () => {
         try {
-            // Use API_BASE_URL
             const res = await axios.get(`${API_BASE_URL}/service-hours/public`);
             setServiceHours(res.data);
             localStorage.setItem('canteenServiceHours', JSON.stringify(res.data));
@@ -200,7 +203,6 @@ const AdminDashboardPage = () => {
         if (!token) { alert('Authentication error. Please log in again.'); navigate('/login'); return; }
         try {
             const dataToSend = { ...serviceHours };
-            // Use API_BASE_URL
             const res = await axios.patch(`${API_BASE_URL}/admin/service-hours`, dataToSend, { headers: getAdminAuthHeaders(token) }); 
             setServiceHours(res.data);
             localStorage.setItem('canteenServiceHours', JSON.stringify(res.data));
@@ -213,7 +215,6 @@ const AdminDashboardPage = () => {
             const token = localStorage.getItem('admin_token');
             if (!token) { alert('Authentication error. Please log in again.'); navigate('/login'); return; }
             try {
-                // Use API_BASE_URL
                 const res = await axios.patch(`${API_BASE_URL}/admin/service-hours`, DEFAULT_SERVICE_HOURS, { headers: getAdminAuthHeaders(token) }); 
                 setServiceHours(res.data);
                 localStorage.setItem('canteenServiceHours', JSON.stringify(res.data));
@@ -226,7 +227,6 @@ const AdminDashboardPage = () => {
     // --- Canteen Status Functions ---
     const fetchCanteenStatus = async () => {
         try {
-            // Use API_BASE_URL
             const res = await axios.get(`${API_BASE_URL}/canteen-status/public`);
             setIsCanteenOpen(res.data.isOpen);
             return res.data.isOpen;
@@ -240,7 +240,6 @@ const AdminDashboardPage = () => {
             return;
         }
         try {
-            // Use API_BASE_URL
             const response = await axios.patch(`${API_BASE_URL}/admin/canteen-status`,
                 {},
                 { headers: getAdminAuthHeaders(token) } 
@@ -259,24 +258,20 @@ const AdminDashboardPage = () => {
         try {
             const token = localStorage.getItem('admin_token');
             if (!token) { navigate('/login'); return; }
-            // Use API_BASE_URL
             const res = await axios.get(`${API_BASE_URL}/admin/menu`, { headers: getAdminAuthHeaders(token) });
             setMenuItems(res.data || []);
         } catch (err) { 
             console.error("Fetch Admin Menu Error:", err.response?.data || err.message); 
             if (err.response?.status === 401) {
                  setError('Session expired. Please log in again.');
-                 handleLogout(); // Use the logout function
+                 handleLogout();
             } else {
-                 setError('Failed to fetch menu items. Check connection or reload.'); 
+                 setError('Failed to fetch menu items.'); 
             }
             setMenuItems([]); 
         }
         finally { setLoading(false); }
      };
-
-    // --- Logout --- (Defined once)
-    const handleLogout = () => { localStorage.removeItem('admin_token'); navigate('/login'); };
 
     useEffect(() => {
         fetchCanteenStatus();
@@ -287,7 +282,7 @@ const AdminDashboardPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); 
 
-    // --- Data Grouping Logic (omitted for brevity) ---
+    // --- Data Grouping Logic ---
     const groupedAndFilteredItems = useMemo(() => {
         const itemsToProcess = searchTerm.trim()
             ? menuItems.filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -373,6 +368,9 @@ const AdminDashboardPage = () => {
             } catch (err) { setError('Failed to delete item.'); console.error("Delete Err:", err.response?.data || err.message); }
         }
     };
+
+    // --- Logout ---
+    const handleLogout = () => { localStorage.removeItem('admin_token'); navigate('/login'); };
 
     // --- Service Hours Display (omitted for brevity) ---
     const mealDisplayNames = { breakfast: "Breakfast Slot", lunch: "Lunch Slot" };
