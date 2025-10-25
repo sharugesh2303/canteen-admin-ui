@@ -10,12 +10,13 @@ import { LuLogOut, LuMenu, LuX } from 'react-icons/lu';
 import { VscFeedback } from "react-icons/vsc";
 import { MdCampaign, MdFastfood, MdLocalDrink, MdOutlineBreakfastDining, MdOutlineLunchDining, MdOutlineDinnerDining, MdMenuBook } from "react-icons/md"; 
 import { FaPlusCircle, FaUtensils, FaClipboardList, FaChartLine, FaSearch, FaClock, FaRedo, FaQuestionCircle, FaArrowLeft } from 'react-icons/fa'; 
-import AdminMenuItemCard from '../components/AdminMenuItemCard.jsx'; // Make sure to update this file too!
+import AdminMenuItemCard from '../components/AdminMenuItemCard.jsx';
 
 // ================================================
 // !!! VERCEL DEPLOYMENT FIX: API URLS !!!
 // ================================================
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000/api';
+// This creates the root URL (without '/api') for serving images from '/uploads'
 const API_ROOT_URL = (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace("/api", "") : 'http://localhost:10000');
 // ================================================
 // !!! END OF FIX !!!
