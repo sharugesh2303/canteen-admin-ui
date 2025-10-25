@@ -13,13 +13,14 @@ import { FaPlusCircle, FaUtensils, FaClipboardList, FaChartLine, FaSearch, FaClo
 import AdminMenuItemCard from '../components/AdminMenuItemCard.jsx';
 
 // ================================================
-// !!! VERCEL DEPLOYMENT FIX: API URLS !!!
-// ================================================
+// 🟢 VERCEL DEPLOYMENT FIX: API URLS 🟢
+// The VERCEL deployment needs the VITE_API_URL environment variable to be set.
 // VITE_API_URL should be the full API path, e.g., https://your-render-backend.onrender.com/api
+// ================================================
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000/api';
 
-// VITE_API_URL should be the base domain (without /api) for images, e.g., https://your-render-backend.onrender.com
-// We get this by checking VITE_API_URL and removing the /api, or using a fallback if VITE_API_URL isn't set.
+// API_ROOT_URL is for images and needs the base domain (without /api).
+// It correctly handles the removal of '/api' or falls back to localhost base.
 const API_ROOT_URL = (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace("/api", "") : 'http://localhost:10000');
 // ================================================
 // !!! END OF FIX !!!
@@ -32,7 +33,7 @@ const DEFAULT_SERVICE_HOURS = {
     lunchStart: '12:00', lunchEnd: '15:00',
 };
 
-// --- Category Icon Mapping (omitted for brevity) ---
+// --- Category Icon Mapping ---
 const categoryIcons = {
     Meals: MdFastfood, Breakfast: MdOutlineBreakfastDining, Lunch: MdOutlineLunchDining, Dinner: MdOutlineDinnerDining,
     Snacks: MdFastfood, Drinks: MdLocalDrink, Beverages: MdLocalDrink, Stationery: MdMenuBook, Uncategorized: FaQuestionCircle,
@@ -45,41 +46,30 @@ const getAdminAuthHeaders = (token) => ({
 });
 
 // ================================================
-// !!! CRITICAL FIX AREA - getFullImageUrl !!!
+// 🟢 CRITICAL FIX: Image URL Construction 🟢
+// This function constructs the full URL for assets served by the backend.
 // ================================================
-/**
- * Constructs the full public URL for an image.
- * Assumes imagePath from the DB is relative (e.g., 'item_123.jpg' or '/uploads/item_123.jpg').
- */
 const getFullImageUrl = (imagePath) => {
     if (!imagePath) return '';
-
-    // CRITICAL: Determine the base URL for the uploads folder on your server.
-    // If your backend serves images from a public folder, the path might be different.
-    // Assuming your images are served directly from API_ROOT_URL/uploads/
-    const BASE_UPLOAD_URL = `${API_ROOT_URL}/uploads/`;
-
-    // 1. If imagePath is already a full URL (e.g., from a CDN or external storage like S3/Firebase)
+    
+    // Check if it's already a full URL (e.g., from a CDN or external service)
     if (imagePath.startsWith('http')) {
         return imagePath;
     }
     
-    // 2. If imagePath starts with a slash (e.g., /uploads/item.jpg), 
-    // it needs the root URL but *without* the redundant /uploads/
-    if (imagePath.startsWith('/')) {
-        // You might need to adjust this depending on how your Express server exposes /uploads
-        // If Express has 'app.use('/uploads', express.static('uploads'))', then this is correct.
-        // If Express has 'app.use(express.static('public'))' and the image is in 'public/uploads', 
-        // the item path in DB might be '/uploads/item.jpg', which is what we need to prepend API_ROOT_URL to.
-        return `${API_ROOT_URL}${imagePath}`;
+    // Construct the final URL using the dynamic API_ROOT_URL
+    // If imagePath is '/uploads/item.jpg', this resolves to:
+    // https://your-render-backend.onrender.com/uploads/item.jpg
+    // If imagePath is 'item.jpg', we append the '/uploads/' path ourselves
+    if (imagePath.startsWith('/uploads/')) {
+         return `${API_ROOT_URL}${imagePath}`;
     }
-
-    // 3. If imagePath is just the filename (e.g., 'item_123.jpg')
-    // Prepend the full upload directory path.
-    return BASE_UPLOAD_URL + imagePath;
+    
+    // Fallback if only the filename is stored (less likely if you used the API_ROOT_URL fix)
+    return `${API_ROOT_URL}/uploads/${imagePath}`;
 };
 // ================================================
-// !!! END OF FIX !!!
+// !!! END OF CRITICAL FIX !!!
 // ================================================
 
 // --- SparkleOverlay Component (omitted for brevity) ---
@@ -105,7 +95,7 @@ const SparkleOverlay = () => {
     );
 };
 
-// --- RealTimeClock Component (omitted for brevity) ---
+// --- RealTimeClock Component ---
 const RealTimeClock = () => {
     const [time, setTime] = useState(new Date());
     useEffect(() => {
@@ -173,7 +163,7 @@ const AdminSidebarNav = ({ onClose }) => {
     );
 };
 
-// --- Admin SubCategory Card Component (omitted for brevity) ---
+// --- Admin SubCategory Card Component ---
 const AdminSubCategoryCard = ({ subCategory, onClick }) => {
     return (
         <button
@@ -181,7 +171,7 @@ const AdminSubCategoryCard = ({ subCategory, onClick }) => {
             className="bg-slate-800 rounded-xl shadow-lg overflow-hidden flex flex-col items-center group transition-all duration-300 hover:shadow-orange-500/50 hover:shadow-xl hover:-translate-y-1 border border-slate-700 hover:ring-2 hover:ring-orange-400/50 active:scale-[0.98] cursor-pointer p-4 w-40 h-48 justify-center" 
         >
             <img
-                // Use the helper to fix the image URL
+                // 🟢 Use the helper to fix the image URL
                 src={getFullImageUrl(subCategory.imageUrl) || 'https://placehold.co/100x100/1e293b/475569?text=Img'} 
                 alt={subCategory.name}
                 className="w-24 h-24 object-cover rounded-full mb-3 group-hover:scale-105 transition-transform duration-300 border-2 border-slate-600"
@@ -208,7 +198,7 @@ const AdminDashboardPage = () => {
     const [selectedAdminSubCategoryId, setSelectedAdminSubCategoryId] = useState(null);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false); 
 
-    // --- Service Hours Functions (omitted for brevity) ---
+    // --- Service Hours Functions ---
     const fetchServiceHours = async () => {
         try {
             const res = await axios.get(`${API_BASE_URL}/service-hours/public`);
@@ -246,7 +236,7 @@ const AdminDashboardPage = () => {
         }
     };
 
-    // --- Canteen Status Functions (omitted for brevity) ---
+    // --- Canteen Status Functions ---
     const fetchCanteenStatus = async () => {
         try {
             const res = await axios.get(`${API_BASE_URL}/canteen-status/public`);
@@ -274,7 +264,7 @@ const AdminDashboardPage = () => {
         }
     };
 
-    // --- Fetch Menu Items (omitted for brevity) ---
+    // --- Fetch Menu Items ---
     const fetchAdminMenuItems = async () => {
         setLoading(true); setError(null);
         try {
@@ -304,7 +294,7 @@ const AdminDashboardPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); 
 
-    // --- Data Grouping Logic (omitted for brevity) ---
+    // --- Data Grouping Logic ---
     const groupedAndFilteredItems = useMemo(() => {
         const itemsToProcess = searchTerm.trim()
             ? menuItems.filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -326,7 +316,7 @@ const AdminDashboardPage = () => {
                 const subCategoryName = subCategory?.name || 'Other Snacks';
 
                 if (subCategory && !subCategoryDetailsMap.has(subCategoryId)) {
-                    // Use the helper to fix the image URL
+                    // 🟢 Use the helper to fix the image URL
                     const correctedImageUrl = getFullImageUrl(subCategory.imageUrl); 
                     subCategoryDetailsMap.set(subCategoryId, { _id: subCategoryId, name: subCategoryName, imageUrl: correctedImageUrl });
                 } else if (!subCategory && !subCategoryDetailsMap.has('other')){
@@ -362,7 +352,7 @@ const AdminDashboardPage = () => {
         return { ...sortedGroups, subCategoryDetails: subCategoryDetailsMap };
     }, [menuItems, searchTerm]);
 
-    // --- State Management for Grouping (omitted for brevity) ---
+    // --- State Management for Grouping ---
     useEffect(() => {
         const availableCategories = Object.keys(groupedAndFilteredItems).filter(key => key !== 'searchResults' && key !== 'subCategoryDetails');
         if (!loading && !activeAdminCategory && availableCategories.length > 0 && !groupedAndFilteredItems.searchResults) {
@@ -378,7 +368,7 @@ const AdminDashboardPage = () => {
 
     useEffect(() => { setSelectedAdminSubCategoryId(null); }, [activeAdminCategory]);
 
-    // --- Delete Item (omitted for brevity) ---
+    // --- Delete Item ---
     const handleDeleteItem = async (itemId) => {
         if (window.confirm('Delete this item?')) {
             const token = localStorage.getItem('admin_token');
@@ -391,24 +381,24 @@ const AdminDashboardPage = () => {
         }
     };
 
-    // --- Logout (omitted for brevity) ---
+    // --- Logout ---
     const handleLogout = () => { localStorage.removeItem('admin_token'); navigate('/login'); };
 
-    // --- Service Hours Display (omitted for brevity) ---
+    // --- Service Hours Display ---
     const mealDisplayNames = { breakfast: "Breakfast Slot", lunch: "Lunch Slot" };
     const startKey = `${selectedMeal}Start`;
     const endKey = `${selectedMeal}End`;
 
-    // --- Subcategory Click Handlers (omitted for brevity) ---
+    // --- Subcategory Click Handlers ---
     const handleAdminSubCategoryClick = (subCatId) => setSelectedAdminSubCategoryId(subCatId);
     const handleBackToAdminSubCategories = () => setSelectedAdminSubCategoryId(null);
 
-    // --- Render (omitted for brevity) ---
+    // --- Render ---
     return (
         <div className="min-h-screen bg-slate-900 font-sans relative flex">
             <SparkleOverlay />
             
-            {/* --- MOBILE DRAWER/OVERLAY (omitted for brevity) --- */}
+            {/* --- MOBILE DRAWER/OVERLAY --- */}
             <div 
                 className={`fixed inset-0 z-40 md:hidden transition-all duration-300 ${isDrawerOpen ? 'bg-black/50 pointer-events-auto' : 'bg-black/0 pointer-events-none'}`}
                 onClick={() => setIsDrawerOpen(false)}
@@ -427,7 +417,7 @@ const AdminDashboardPage = () => {
                 </div>
             </div>
 
-            {/* --- DESKTOP SIDEBAR (Permanent on MD+) (omitted for brevity) --- */}
+            {/* --- DESKTOP SIDEBAR (Permanent on MD+) --- */}
             <aside className="hidden md:block w-64 bg-slate-800 border-r border-slate-700 sticky top-0 h-screen overflow-y-auto flex-shrink-0 z-20">
                 <div className="p-4 py-6">
                     <h1 className="text-2xl font-extrabold text-orange-400">Admin Portal</h1>
@@ -435,10 +425,10 @@ const AdminDashboardPage = () => {
                 <AdminSidebarNav onClose={() => {}} />
             </aside>
 
-            {/* --- MAIN CONTENT AREA (omitted for brevity) --- */}
+            {/* --- MAIN CONTENT AREA --- */}
             <div className="flex-grow relative z-10 min-h-screen">
                 
-                {/* --- HEADER (omitted for brevity) --- */}
+                {/* --- HEADER --- */}
                 <header className="bg-gray-900 text-white shadow-lg p-4 flex justify-between items-center sticky top-0 z-30 border-b border-slate-700">
                     <div className="flex items-center space-x-3">
                         {/* Hamburger Button for mobile */}
@@ -469,12 +459,12 @@ const AdminDashboardPage = () => {
                 <RealTimeClock />
 
                 <main className="container mx-auto p-4 md:p-8">
-                    {/* Ad Placeholder (omitted for brevity) */}
+                    {/* Ad Placeholder */}
                     <div className="w-full max-w-5xl mx-auto h-48 md:h-64 overflow-hidden relative mb-8 rounded-lg shadow-xl bg-slate-800/50 flex items-center justify-center border border-slate-700">
                         <p className="text-2xl font-bold text-orange-400">ADMIN MENU VIEW</p>
                     </div>
 
-                    {/* Service Hours Form (omitted for brevity) */}
+                    {/* Service Hours Form */}
                     <div className="flex justify-between items-center bg-slate-700/50 p-4 rounded-xl mb-6 cursor-pointer hover:bg-slate-700 transition-colors" onClick={() => setIsHoursFormVisible(p => !p)}>
                         <h3 className="text-xl font-bold text-slate-100 flex items-center gap-2"><FaClock /> Manage Service Hours</h3>
                         <span className="text-orange-400">{isHoursFormVisible ? 'Hide' : 'Show'}</span>
@@ -503,9 +493,9 @@ const AdminDashboardPage = () => {
                         </div>
                     )}
 
-                    {/* Menu Title and Content Display (omitted for brevity) */}
+                    {/* Menu Title and Content Display */}
                     <h2 className="text-3xl font-extrabold text-slate-100 mb-6">
-                            {searchTerm ? `Search Results for "${searchTerm}"` : 'Menu Management'}
+                         {searchTerm ? `Search Results for "${searchTerm}"` : 'Menu Management'}
                     </h2>
 
                     {loading ? ( /* ... loading spinner ... */ 
