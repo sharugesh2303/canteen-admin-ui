@@ -10,17 +10,14 @@ import { LuLogOut, LuMenu, LuX } from 'react-icons/lu';
 import { VscFeedback } from "react-icons/vsc";
 import { MdCampaign, MdFastfood, MdLocalDrink, MdOutlineBreakfastDining, MdOutlineLunchDining, MdOutlineDinnerDining, MdMenuBook } from "react-icons/md"; 
 import { FaPlusCircle, FaUtensils, FaClipboardList, FaChartLine, FaSearch, FaClock, FaRedo, FaQuestionCircle, FaArrowLeft } from 'react-icons/fa'; 
-import AdminMenuItemCard from '../components/AdminMenuItemCard.jsx'; // Make sure this import is correct
+import AdminMenuItemCard from '../components/AdminMenuItemCard.jsx'; 
 
 // ================================================
-// 🟢 VERCEL DEPLOYMENT FIX: API URLS 🟢
-// The VERCEL deployment needs the VITE_API_URL environment variable to be set.
-// VITE_API_URL should be the full API path, e.g., https://your-render-backend.onrender.com/api
+// 🟢 FINAL CODE FIX: Standardized Fallback Port 🟢
+// Changed from 10000 to 5000 to match the stuck value in Vercel's build
 // ================================================
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000/api';
-
-// API_ROOT_URL is for images and needs the base domain (without /api).
-const API_ROOT_URL = (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace("/api", "") : 'http://localhost:10000');
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'; // <--- CHANGED TO 5000
+const API_ROOT_URL = (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace("/api", "") : 'http://localhost:5000'); // <--- CHANGED TO 5000
 // ================================================
 // !!! END OF FIX !!!
 // ================================================

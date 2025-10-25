@@ -6,11 +6,10 @@ import React from 'react';
 import { FaEdit, FaTrashAlt } from 'react-icons/fa'; 
 
 // ================================================
-// 🟢 FINAL FIX: VERCEL DEPLOYMENT FIX: API URLS 🟢
-// This creates the root URL (without '/api') for serving images from '/uploads'
-// We use the fallback of 10000 here for consistency, but the live deployment uses VITE_API_URL.
+// 🟢 FINAL CODE FIX: Standardized Fallback Port 🟢
+// Changed from 10000 to 5000 to match the stuck value in Vercel's build
 // ================================================
-const API_ROOT_URL = (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace("/api", "") : 'http://localhost:10000');
+const API_ROOT_URL = (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace("/api", "") : 'http://localhost:5000');
 // ================================================
 // !!! END OF FIX !!!
 // ================================================
@@ -43,13 +42,11 @@ const AdminMenuItemCard = ({ item, onEdit, onDelete }) => {
     const stockColor = item.stock <= 10 ? 'text-red-500' : 'text-green-600';
 
     return (
-        // Changed to use the dark theme classes consistent with your other files
         <div className="bg-slate-800 rounded-xl shadow-lg overflow-hidden flex flex-col transition-all duration-300 hover:shadow-orange-500/50 hover:shadow-xl hover:-translate-y-1 border border-slate-700 active:scale-[0.98]">
             
             {/* Image Section */}
             <div className="h-48 overflow-hidden bg-slate-700 flex items-center justify-center">
                 <img 
-                    // 💡 FIX APPLIED HERE: Using the guaranteed full URL
                     src={imageUrl || 'https://placehold.co/400x400/1e293b/475569?text=Image+Missing'} 
                     alt={item.name} 
                     className="w-full h-full object-cover"
