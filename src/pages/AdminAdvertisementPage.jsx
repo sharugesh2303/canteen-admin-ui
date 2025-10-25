@@ -12,6 +12,14 @@ import { MdCampaign } from "react-icons/md";
 // Icons for Page and Sidebar
 import { FaPlusCircle, FaUtensils, FaClipboardList, FaChartLine, FaTrashAlt, FaToggleOn, FaToggleOff, FaUpload } from 'react-icons/fa';
 
+// ================================================
+// !!! VERCEL DEPLOYMENT FIX: API URLS !!!
+// ================================================
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000/api';
+// ================================================
+// !!! END OF FIX !!!
+// ================================================
+
 const POLLING_INTERVAL = 15 * 1000; // 15 seconds
 
 // --- SparkleOverlay Component (from Dashboard) ---
@@ -102,16 +110,17 @@ const AdminAdvertisementPage = () => {
     const [imageFile, setImageFile] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // --- Canteen Status Functions (from Dashboard Header) ---
-    // This uses 'Authorization: Bearer' which is from your dashboard, this should be fine
-    const getAdminAuthHeaders = (token) => ({
+    // --- Helper function for Authorization Header (FIXED) ---
+    const getAdminAuthHeaders = (token, contentType = 'application/json') => ({
         'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
+        'Content-Type': contentType,
     });
 
+    // --- Canteen Status Functions (from Dashboard Header) ---
     const fetchCanteenStatus = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/canteen-status/public');
+            // Use API_BASE_URL
+            const res = await axios.get(`${API_BASE_URL}/canteen-status/public`);
             setIsCanteenOpen(res.data.isOpen);
         } catch (err) { console.warn("Could not fetch canteen status."); }
     };
@@ -120,7 +129,8 @@ const AdminAdvertisementPage = () => {
         const token = localStorage.getItem('admin_token');
         if (!token) { navigate('/login'); return; }
         try {
-            const response = await axios.patch('http://localhost:5000/api/admin/canteen-status', {}, { headers: getAdminAuthHeaders(token) });
+            // Use API_BASE_URL
+            const response = await axios.patch(`${API_BASE_URL}/admin/canteen-status`, {}, { headers: getAdminAuthHeaders(token) });
             setIsCanteenOpen(response.data.isOpen);
             alert(`Canteen status set to ${response.data.isOpen ? 'OPEN' : 'CLOSED'}.`);
         } catch (error) {
@@ -135,15 +145,15 @@ const AdminAdvertisementPage = () => {
     };
 
     // --- Advertisement Page Functions ---
-    // *** FIX: Reverted to use 'x-auth-token' as in your original file ***
     const fetchAds = async () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('admin_token');
             if (!token) { navigate('/login'); return; }
             
-            const response = await axios.get('http://localhost:5000/api/admin/advertisements', {
-                headers: { 'x-auth-token': token }, // <-- CORRECTED
+            // Use API_BASE_URL and correct headers
+            const response = await axios.get(`${API_BASE_URL}/admin/advertisements`, {
+                headers: getAdminAuthHeaders(token), // <-- CORRECTED
             });
             setAds(response.data);
         } catch (err) {
@@ -171,7 +181,6 @@ const AdminAdvertisementPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [navigate]); 
 
-    // *** FIX: Reverted to use 'x-auth-token' as in your original file ***
     const handleUpload = async (e) => {
         e.preventDefault();
         if (!imageFile) {
@@ -182,10 +191,11 @@ const AdminAdvertisementPage = () => {
         formData.append('image', imageFile);
         try {
             const token = localStorage.getItem('admin_token');
-            await axios.post('http://localhost:5000/api/admin/advertisements', formData, {
+            // Use API_BASE_URL and correct headers
+            await axios.post(`${API_BASE_URL}/admin/advertisements`, formData, {
                 headers: { 
                     'Content-Type': 'multipart/form-data', 
-                    'x-auth-token': token // <-- CORRECTED
+                    'Authorization': `Bearer ${token}` // <-- CORRECTED
                 },
             });
             alert('Advertisement uploaded successfully!');
@@ -198,13 +208,13 @@ const AdminAdvertisementPage = () => {
         }
     };
 
-    // *** FIX: Reverted to use 'x-auth-token' as in your original file ***
     const handleDelete = async (adId) => {
         if (window.confirm('Are you sure you want to delete this ad?')) {
             try {
                 const token = localStorage.getItem('admin_token');
-                await axios.delete(`http://localhost:5000/api/admin/advertisements/${adId}`, {
-                    headers: { 'x-auth-token': token }, // <-- CORRECTED
+                // Use API_BASE_URL and correct headers
+                await axios.delete(`${API_BASE_URL}/admin/advertisements/${adId}`, {
+                    headers: getAdminAuthHeaders(token), // <-- CORRECTED
                 });
                 fetchAds(); // Refresh
             } catch (err) {
@@ -214,12 +224,12 @@ const AdminAdvertisementPage = () => {
         }
     };
 
-    // *** FIX: Reverted to use 'x-auth-token' as in your original file ***
     const handleToggle = async (adId) => {
         try {
             const token = localStorage.getItem('admin_token');
-            await axios.patch(`http://localhost:5000/api/admin/advertisements/${adId}/toggle`, {}, {
-                headers: { 'x-auth-token': token }, // <-- CORRECTED
+            // Use API_BASE_URL and correct headers
+            await axios.patch(`${API_BASE_URL}/admin/advertisements/${adId}/toggle`, {}, {
+                headers: getAdminAuthHeaders(token), // <-- CORRECTED
             });
             fetchAds(); // Refresh
         } catch (err)
@@ -329,7 +339,8 @@ const AdminAdvertisementPage = () => {
                                 ads.map(ad => (
                                     <div key={ad._id} className="bg-slate-800 rounded-xl shadow-lg border border-slate-700 overflow-hidden group">
                                         <img 
-                                            src={ad.imageUrl} 
+                                            // Use the helper to fix the image URL
+                                            src={getFullImageUrl(ad.imageUrl)} 
                                             alt="Ad Preview" 
                                             className="w-full h-40 object-cover rounded-t-xl transition-transform duration-300 group-hover:scale-[1.03]" 
                                         />

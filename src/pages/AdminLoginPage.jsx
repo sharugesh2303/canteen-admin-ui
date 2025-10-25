@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
+// --- CONFIGURATION (FIXED) ---
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000/api';
+const LOGIN_ENDPOINT = `${API_BASE_URL}/admin/login`;
+
 const AdminLoginPage = () => {
     const [email, setEmail] = useState('admin@canteen.com');
     const [password, setPassword] = useState('');
@@ -15,7 +19,8 @@ const AdminLoginPage = () => {
         setError('');
 
         try {
-            const response = await axios.post('http://localhost:5000/api/admin/login', {
+            // Use the LOGIN_ENDPOINT variable
+            const response = await axios.post(LOGIN_ENDPOINT, {
                 email,
                 password,
             });
@@ -23,7 +28,7 @@ const AdminLoginPage = () => {
             localStorage.setItem('admin_token', response.data.token);
             navigate('/menu');
         } catch (err) {
-            setError(err.response?.data?.message || 'Login failed.');
+            setError(err.response?.data?.message || 'Login failed. Server might be down or URL is incorrect.');
         } finally {
             setLoading(false);
         }

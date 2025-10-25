@@ -1,16 +1,24 @@
-import React, { useState, useEffect, forwardRef } from 'react'; // <-- 1. Import forwardRef
+import React, { useState, useEffect, forwardRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 
 // ICONS from original RevenuePage
-import { LuLogOut, LuMenu, LuX } from 'react-icons/lu'; // Added LuMenu, LuX
+import { LuLogOut, LuMenu, LuX } from 'react-icons/lu';
 import { FaChartLine, FaCalendarAlt } from 'react-icons/fa';
 // ICONS imported from AdminDashboardPage for new layout
 import { VscFeedback } from "react-icons/vsc";
 import { MdCampaign } from "react-icons/md";
 import { FaPlusCircle, FaUtensils, FaClipboardList } from 'react-icons/fa';
+
+// ================================================
+// !!! VERCEL DEPLOYMENT FIX: API URLS !!!
+// ================================================
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000/api';
+// ================================================
+// !!! END OF FIX !!!
+// ================================================
 
 // --- Helper function for Authorization Header (from AdminDashboardPage) ---
 const getAdminAuthHeaders = (token) => ({
@@ -78,12 +86,11 @@ const AdminSidebarNav = ({ onClose }) => {
 };
 
 // --- CustomDateInput Component (Wrapped with forwardRef) ---
-// <-- 2. Wrap with forwardRef -->
 const CustomDateInput = forwardRef(({ value, onClick }, ref) => (
     <button 
         className="p-3 border border-slate-600 rounded-lg shadow-md bg-slate-700 text-white font-semibold flex items-center space-x-2 transition-all hover:bg-slate-600 active:scale-95" 
         onClick={onClick}
-        ref={ref} // <-- 3. Pass the ref to the button -->
+        ref={ref}
     >
         <FaCalendarAlt size={16} className="text-orange-400" />
         <span>{value}</span>
@@ -104,7 +111,8 @@ const RevenuePage = () => {
     // --- NEW: Canteen Status Functions (from AdminDashboardPage) ---
     const fetchCanteenStatus = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/canteen-status/public');
+            // Use API_BASE_URL
+            const res = await axios.get(`${API_BASE_URL}/canteen-status/public`);
             setIsCanteenOpen(res.data.isOpen);
             return res.data.isOpen;
         } catch (err) { console.warn("Could not fetch canteen status."); setIsCanteenOpen(false); return false; }
@@ -117,7 +125,8 @@ const RevenuePage = () => {
             return;
         }
         try {
-            const response = await axios.patch('http://localhost:5000/api/admin/canteen-status',
+            // Use API_BASE_URL
+            const response = await axios.patch(`${API_BASE_URL}/admin/canteen-status`,
                 {},
                 { headers: getAdminAuthHeaders(token) } 
             );
@@ -129,7 +138,7 @@ const RevenuePage = () => {
         }
     };
 
-    // --- MODIFIED: fetchDailySummary (Uses new Auth) ---
+    // --- MODIFIED: fetchDailySummary (Uses new Auth & API_BASE_URL) ---
     const fetchDailySummary = async (date) => {
         setLoading(true);
         setError(null);
@@ -140,9 +149,9 @@ const RevenuePage = () => {
                 return;
             }
             const dateString = date.toLocaleDateString('en-CA'); // YYYY-MM-DD
-            // --- AUTH CHANGE ---
             const config = { headers: getAdminAuthHeaders(token) };
-            const response = await axios.get(`http://localhost:5000/api/admin/daily-summary?date=${dateString}`, config);
+            // Use API_BASE_URL
+            const response = await axios.get(`${API_BASE_URL}/admin/daily-summary?date=${dateString}`, config);
             setDailySummary(response.data);
         } catch (err) {
             console.error(err);
@@ -252,7 +261,7 @@ const RevenuePage = () => {
                                 selected={selectedDate}
                                 onChange={(date) => setSelectedDate(date)}
                                 dateFormat="MMMM d, yyyy"
-                                customInput={<CustomDateInput />} // Use the wrapped component
+                                customInput={<CustomDateInput />}
                             />
                         </div>
                     </div>
@@ -306,7 +315,7 @@ const RevenuePage = () => {
                                     </table>
                                 </div>
                             ) : (
-                                <p className="text-center text-slate-400 text-lg mt-4">No delivered or paid orders found for this date.</p> // Updated message
+                                <p className="text-center text-slate-400 text-lg mt-4">No delivered or paid orders found for this date.</p>
                             )}
                         </div>
                     )}

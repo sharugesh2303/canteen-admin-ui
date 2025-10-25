@@ -1,21 +1,31 @@
 import React from 'react';
 import { FaEdit, FaTrashAlt } from 'react-icons/fa'; // Added icons for cleaner design
 
-// **NEW HELPER FUNCTION TO ENSURE FULL URL PATH**
+// ================================================
+// !!! VERCEL DEPLOYMENT FIX: API URLS !!!
+// ================================================
+// This creates the root URL (without '/api') for serving images from '/uploads'
+const API_ROOT_URL = (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace("/api", "") : 'http://localhost:10000');
+// ================================================
+// !!! END OF FIX !!!
+// ================================================
+
+
+// **UPDATED HELPER FUNCTION TO USE ENV VARIABLE**
 const getFullImageUrl = (imagePath) => {
     if (!imagePath) return '';
-    // Based on your diagnosis, the server is running on :5000 and uploads are in /uploads/
-    const BASE_UPLOAD_URL = "http://localhost:5000/uploads/";
+    // Use the new API_ROOT_URL variable
+    const BASE_UPLOAD_URL = `${API_ROOT_URL}/uploads/`;
 
     // Check if the path is already a full URL (starts with http or https)
     if (imagePath.startsWith('http')) {
         return imagePath;
     }
-    // Check if it's a relative path (starts with /), if so prepend host and port.
+    // Check if it's a relative path (starts with /), if so prepend host.
     if (imagePath.startsWith('/')) {
-        return `http://localhost:5000${imagePath}`;
+        return `${API_ROOT_URL}${imagePath}`;
     }
-    // If it's just the filename/ID (e.g., "1761152232952.jpg"), prepend the full path.
+    // If it's just the filename/ID, prepend the full path.
     return BASE_UPLOAD_URL + imagePath;
 };
 // END NEW HELPER

@@ -6,6 +6,20 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaSave, FaTimes, FaUpload } from 'react-icons/fa';
 
+// ================================================
+// !!! VERCEL DEPLOYMENT FIX: API URLS !!!
+// ================================================
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000/api';
+// ================================================
+// !!! END OF FIX !!!
+// ================================================
+
+// --- Helper function for Authorization Header (FIXED) ---
+const getAdminAuthHeaders = (token, contentType = 'application/json') => ({
+    'Authorization': `Bearer ${token}`, // Use Bearer token
+    'Content-Type': contentType,
+});
+
 // --- SubCategory Modal Component ---
 const AddSubCategoryModal = ({ onSave, onCancel, isSubmitting }) => {
     const [name, setName] = useState('');
@@ -29,7 +43,7 @@ const AddSubCategoryModal = ({ onSave, onCancel, isSubmitting }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/60 z-40 flex justify-center items-center">
+        <div className="fixed inset-0 bg-black/60 z-40 flex justify-center items-center p-4">
             <div className="bg-slate-800 rounded-xl shadow-2xl p-6 w-full max-w-md border-t-4 border-orange-500">
                 <h3 className="text-xl font-bold mb-6 text-slate-100">Add New Subcategory</h3>
                 
@@ -151,12 +165,14 @@ const AdminMenuItemForm = ({ initialData, uniqueSubCategories, onSave, onCancel,
 
         try {
             const token = localStorage.getItem('admin_token');
-            const headers = { 'x-auth-token': token };
+            const headers = getAdminAuthHeaders(token); // Use correct helper
 
             if (itemData.id) {
-                await axios.put(`http://localhost:5000/api/menu/${itemData.id}`, itemData, { headers });
+                // Use API_BASE_URL
+                await axios.put(`${API_BASE_URL}/menu/${itemData.id}`, itemData, { headers });
             } else {
-                await axios.post('http://localhost:5000/api/menu', itemData, { headers });
+                // Use API_BASE_URL
+                await axios.post(`${API_BASE_URL}/menu`, itemData, { headers });
             }
             onSave();
             
@@ -177,14 +193,10 @@ const AdminMenuItemForm = ({ initialData, uniqueSubCategories, onSave, onCancel,
         
         try {
             const token = localStorage.getItem('admin_token');
-            // --- IMPORTANT ---
-            // This is the new API endpoint you must create on your backend.
-            // It must accept 'multipart/form-data' and return the new subcategory object.
-            const response = await axios.post('http://localhost:5000/api/admin/subcategories', subCatFormData, {
-                headers: {
-                    'x-auth-token': token,
-                    'Content-Type': 'multipart/form-data'
-                }
+            
+            // Use API_BASE_URL and correct headers
+            const response = await axios.post(`${API_BASE_URL}/admin/subcategories`, subCatFormData, {
+                headers: getAdminAuthHeaders(token, 'multipart/form-data') // Use correct helper
             });
 
             onSubCategoryAdded(); 

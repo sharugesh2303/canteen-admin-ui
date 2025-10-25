@@ -13,12 +13,38 @@ import { VscFeedback } from "react-icons/vsc";
 import { MdCampaign } from "react-icons/md";
 import { FaPlusCircle, FaUtensils, FaClipboardList, FaChartLine } from 'react-icons/fa';
 
+// ================================================
+// !!! VERCEL DEPLOYMENT FIX: API URLS !!!
+// ================================================
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000/api';
+const API_ROOT_URL = (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace("/api", "") : 'http://localhost:10000');
+// ================================================
+// !!! END OF FIX !!!
+// ================================================
 
-// --- Helper function for Authorization Header ---
+
+// --- Helper function for Authorization Header (FIXED) ---
 const getAdminAuthHeaders = (token, contentType = 'application/json') => ({
-    'x-auth-token': token, // Use x-auth-token as per your API calls
+    'Authorization': `Bearer ${token}`, // Corrected to use Bearer token
     'Content-Type': contentType,
 });
+
+// **HELPER FUNCTION FOR CORRECTING IMAGE URL (FIXED)**
+const getFullImageUrl = (imagePath) => {
+    if (!imagePath) return '';
+    // Use the new API_ROOT_URL variable
+    const BASE_UPLOAD_URL = `${API_ROOT_URL}/uploads/`;
+
+    if (imagePath.startsWith('http')) {
+        return imagePath;
+    }
+    if (imagePath.startsWith('/')) {
+        return `${API_ROOT_URL}${imagePath}`;
+    }
+    return BASE_UPLOAD_URL + imagePath;
+};
+// **END HELPER**
+
 
 // --- SparkleOverlay Component (from Dashboard) ---
 const SparkleOverlay = () => {
@@ -273,7 +299,8 @@ const AdminMenuFormPage = () => {
     // --- Canteen Status Functions ---
     const fetchCanteenStatus = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/canteen-status/public');
+            // Use API_BASE_URL
+            const res = await axios.get(`${API_BASE_URL}/canteen-status/public`);
             setIsCanteenOpen(res.data.isOpen);
         } catch (err) { console.warn("Could not fetch canteen status."); }
     };
@@ -285,7 +312,8 @@ const AdminMenuFormPage = () => {
         const token = localStorage.getItem('admin_token');
         if (!token) { navigate('/login'); return; }
         try {
-            const response = await axios.patch('http://localhost:5000/api/admin/canteen-status', {}, { headers: getBearerAuthHeaders(token) });
+            // Use API_BASE_URL
+            const response = await axios.patch(`${API_BASE_URL}/admin/canteen-status`, {}, { headers: getBearerAuthHeaders(token) });
             setIsCanteenOpen(response.data.isOpen);
             alert(`Canteen status set to ${response.data.isOpen ? 'OPEN' : 'CLOSED'}.`);
         } catch (error) {
@@ -301,7 +329,8 @@ const AdminMenuFormPage = () => {
     // --- Fetch Subcategories ---
     const fetchSubCategories = useCallback(async () => {
         try {
-            const response = await axios.get('http://localhost:5000/api/subcategories');
+            // Use API_BASE_URL
+            const response = await axios.get(`${API_BASE_URL}/subcategories`);
             const data = response.data;
             if (Array.isArray(data)) {
                 const sortedData = data.sort((a, b) => a.name.localeCompare(b.name));
@@ -315,24 +344,6 @@ const AdminMenuFormPage = () => {
             setSubCategories([]);
         }
     }, []);
-
-    // **NEW HELPER FUNCTION FOR CORRECTING IMAGE URL**
-    const getFullImageUrl = (imagePath) => {
-        if (!imagePath) return '';
-        // If the path already looks like a full URL (starts with http or https), return it.
-        if (imagePath.startsWith('http')) {
-            return imagePath;
-        }
-        // If it's a relative path (starts with /), prepend the base URL.
-        // Assuming base server is http://localhost:5000 and upload path is /uploads/
-        if (imagePath.startsWith('/')) {
-            return `http://localhost:5000${imagePath}`;
-        }
-        // If it's just the filename/ID, prepend the full path.
-        // We are inferring the path structure from your previous feedback
-        return `http://localhost:5000/uploads/${imagePath}`;
-    };
-    // **END NEW HELPER**
 
     // --- Initial Data Load ---
     useEffect(() => {
@@ -348,8 +359,9 @@ const AdminMenuFormPage = () => {
 
             if (isEditMode) {
                 try {
-                    const itemResponse = await axios.get(`http://localhost:5000/api/admin/menu/${id}`, {
-                        headers: getAdminAuthHeaders(token) // Use helper
+                    // Use API_BASE_URL
+                    const itemResponse = await axios.get(`${API_BASE_URL}/admin/menu/${id}`, {
+                        headers: getAdminAuthHeaders(token) // Use correct helper
                     });
                     const itemToEdit = itemResponse.data;
 
@@ -363,7 +375,7 @@ const AdminMenuFormPage = () => {
                             subCategory: itemToEdit.subCategory ? itemToEdit.subCategory._id : ''
                         });
                         
-                        // **UPDATED LOGIC HERE:** Use the helper function to guarantee the full URL
+                        // Use the helper function to guarantee the full URL
                         const fullImageUrl = getFullImageUrl(itemToEdit.imageUrl || '');
                         setExistingImageUrl(fullImageUrl);
                         
@@ -427,13 +439,20 @@ const AdminMenuFormPage = () => {
 
         try {
             const token = localStorage.getItem('admin_token');
+            // Use correct headers
             const headers = getAdminAuthHeaders(token, 'multipart/form-data');
+            
+            // Use Bearer token authorization
+            headers['Authorization'] = `Bearer ${token}`;
+            delete headers['x-auth-token']; // remove old header
 
             if (isEditMode) {
-                await axios.put(`http://localhost:5000/api/menu/${id}`, itemFormData, { headers });
+                // Use API_BASE_URL
+                await axios.put(`${API_BASE_URL}/menu/${id}`, itemFormData, { headers });
                 alert('Item updated successfully!');
             } else {
-                await axios.post('http://localhost:5000/api/menu', itemFormData, { headers });
+                // Use API_BASE_URL
+                await axios.post(`${API_BASE_URL}/menu`, itemFormData, { headers });
                 alert('Item added successfully!');
             }
             navigate('/menu');
@@ -454,9 +473,14 @@ const AdminMenuFormPage = () => {
         subCatFormData.append('image', file);
         try {
             const token = localStorage.getItem('admin_token');
-            const response = await axios.post('http://localhost:5000/api/admin/subcategories', subCatFormData, {
-                headers: getAdminAuthHeaders(token, 'multipart/form-data')
-            });
+            // Use correct headers
+            const headers = getAdminAuthHeaders(token, 'multipart/form-data');
+            headers['Authorization'] = `Bearer ${token}`;
+            delete headers['x-auth-token'];
+
+            // Use API_BASE_URL
+            const response = await axios.post(`${API_BASE_URL}/admin/subcategories`, subCatFormData, { headers });
+            
             await fetchSubCategories();
             setFormData(prev => ({ ...prev, subCategory: response.data._id }));
             setIsSubCategoryModalVisible(false);
@@ -480,9 +504,10 @@ const AdminMenuFormPage = () => {
         setIsSubmittingSubCat(true);
         try {
             const token = localStorage.getItem('admin_token');
-            await axios.put(`http://localhost:5000/api/admin/subcategories/${subId}`,
+            // Use API_BASE_URL
+            await axios.put(`${API_BASE_URL}/admin/subcategories/${subId}`,
                 { name: newName },
-                { headers: getAdminAuthHeaders(token) }
+                { headers: getAdminAuthHeaders(token) } // Use correct helper
             );
             await fetchSubCategories();
             setIsEditSubCategoryModalVisible(false);
@@ -507,8 +532,9 @@ const AdminMenuFormPage = () => {
             setIsSubmittingSubCat(true);
             try {
                 const token = localStorage.getItem('admin_token');
-                await axios.delete(`http://localhost:5000/api/admin/subcategories/${subIdToDelete}`, {
-                    headers: getAdminAuthHeaders(token)
+                // Use API_BASE_URL
+                await axios.delete(`${API_BASE_URL}/admin/subcategories/${subIdToDelete}`, {
+                    headers: getAdminAuthHeaders(token) // Use correct helper
                 });
                 await fetchSubCategories();
                 setFormData(prev => ({ ...prev, subCategory: '' }));
@@ -524,7 +550,6 @@ const AdminMenuFormPage = () => {
 
     // --- Render Logic ---
     if (loading) {
-        // --- CORRECTED ---
         return (
             <div className="min-h-screen bg-slate-900 flex justify-center items-center">
                 <svg className="animate-spin h-10 w-10 text-orange-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -537,10 +562,9 @@ const AdminMenuFormPage = () => {
     }
 
     if (error) {
-        // --- CORRECTED ---
         return (
-             <div className="min-h-screen bg-slate-900 flex justify-center items-center p-8 flex-col"> {/* Added flex-col */}
-                 <p className="text-red-400 text-center">{error}</p> {/* Removed mt-10 */}
+             <div className="min-h-screen bg-slate-900 flex justify-center items-center p-8 flex-col"> 
+                 <p className="text-red-400 text-center">{error}</p> 
                  <button onClick={() => navigate('/menu')} className="mt-4 bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700">
                      Back to Menu
                  </button>
@@ -630,7 +654,7 @@ const AdminMenuFormPage = () => {
                     )}
 
                     <form onSubmit={handleSubmit} className="bg-slate-800 rounded-xl shadow-2xl p-6 md:p-8 mb-10 border-t-4 border-orange-500 max-w-4xl mx-auto">
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Item Name */}
                             <label className="block text-slate-300">Item Name
                                 <input type="text" name="name" value={formData.name} onChange={handleChange} required className="w-full mt-1 p-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 transition bg-slate-700 text-white" />

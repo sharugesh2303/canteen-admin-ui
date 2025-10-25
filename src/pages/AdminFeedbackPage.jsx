@@ -14,6 +14,14 @@ import { FaPlusCircle, FaUtensils, FaClipboardList, FaChartLine } from 'react-ic
 // Modal Component
 import FeedbackDetailModal from '../components/FeedbackDetailModal'; 
 
+// ================================================
+// !!! VERCEL DEPLOYMENT FIX: API URLS !!!
+// ================================================
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000/api';
+// ================================================
+// !!! END OF FIX !!!
+// ================================================
+
 const POLLING_INTERVAL = 15 * 1000; // 15 seconds
 
 // --- SparkleOverlay Component (from Dashboard) ---
@@ -99,22 +107,22 @@ const AdminFeedbackPage = () => {
     const [isCanteenOpen, setIsCanteenOpen] = useState(true);
 
     // --- State specific to Feedback Page ---
-    // --- UPDATED: This state will ONLY hold UNREAD feedback ---
     const [feedbacks, setFeedbacks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [selectedFeedback, setSelectedFeedback] = useState(null);
 
-    // --- Auth Header for Header functions (Bearer) ---
+    // --- Auth Header (FIXED) ---
     const getAdminAuthHeaders = (token) => ({
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${token}`, // Use Bearer token
         'Content-Type': 'application/json',
     });
 
     // --- Canteen Status Functions (from Dashboard Header) ---
     const fetchCanteenStatus = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/canteen-status/public');
+            // Use API_BASE_URL
+            const res = await axios.get(`${API_BASE_URL}/canteen-status/public`);
             setIsCanteenOpen(res.data.isOpen);
         } catch (err) { console.warn("Could not fetch canteen status."); }
     };
@@ -123,7 +131,8 @@ const AdminFeedbackPage = () => {
         const token = localStorage.getItem('admin_token');
         if (!token) { navigate('/login'); return; }
         try {
-            const response = await axios.patch('http://localhost:5000/api/admin/canteen-status', {}, { headers: getAdminAuthHeaders(token) });
+            // Use API_BASE_URL
+            const response = await axios.patch(`${API_BASE_URL}/admin/canteen-status`, {}, { headers: getAdminAuthHeaders(token) });
             setIsCanteenOpen(response.data.isOpen);
             alert(`Canteen status set to ${response.data.isOpen ? 'OPEN' : 'CLOSED'}.`);
         } catch (error) {
@@ -145,11 +154,12 @@ const AdminFeedbackPage = () => {
             const token = localStorage.getItem('admin_token');
             if (!token) { navigate('/login'); return; }
             
-            const response = await axios.get('http://localhost:5000/api/admin/feedback', {
-                headers: { 'x-auth-token': token }, 
+            // Use API_BASE_URL and correct headers
+            const response = await axios.get(`${API_BASE_URL}/admin/feedback`, {
+                headers: getAdminAuthHeaders(token), // Use correct helper
             });
             
-            // --- UPDATED: Filter for unread feedback only ---
+            // Filter for unread feedback only
             const unreadFeedback = response.data.filter(fb => !fb.isRead);
 
             // Sort by date (newest first)
@@ -168,7 +178,7 @@ const AdminFeedbackPage = () => {
         }
     };
 
-    // --- UPDATED: Mark as read now FILTERS the item from state ---
+    // --- Mark as read now FILTERS the item from state ---
     const handleMarkAsRead = async (feedbackId) => {
         try {
             const token = localStorage.getItem('admin_token');
@@ -180,12 +190,13 @@ const AdminFeedbackPage = () => {
             );
             
             // Make API call in the background
-            await axios.patch(`http://localhost:5000/api/admin/feedback/${feedbackId}/read`, {}, {
-                headers: { 'x-auth-token': token },
+            // Use API_BASE_URL and correct headers
+            await axios.patch(`${API_BASE_URL}/admin/feedback/${feedbackId}/read`, {}, {
+                headers: getAdminAuthHeaders(token), // Use correct helper
             });
         } catch (err) {
             console.error("Failed to mark as read.", err);
-            // Optional: Re-fetch if API call fails to get correct state
+            // Re-fetch if API call fails to get correct state
             fetchFeedbacks();
         }
     };
@@ -200,8 +211,9 @@ const AdminFeedbackPage = () => {
                 // Optimistic UI update: Clear state immediately
                 setFeedbacks([]);
                 
-                await axios.post('http://localhost:5000/api/admin/feedback/mark-all-read', {}, {
-                    headers: { 'x-auth-token': token },
+                // Use API_BASE_URL and correct headers
+                await axios.post(`${API_BASE_URL}/admin/feedback/mark-all-read`, {}, {
+                    headers: getAdminAuthHeaders(token), // Use correct helper
                 });
                 
                 // Refetch just in case new feedback arrived during the API call
@@ -237,7 +249,7 @@ const AdminFeedbackPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [navigate]); 
 
-    // --- UPDATED: Unread count is now just the length of the state array ---
+    // Unread count is now just the length of the state array
     const unreadCount = feedbacks.length;
 
     // New function to render the feedback cards cleanly
@@ -253,22 +265,20 @@ const AdminFeedbackPage = () => {
         if (error) {
             return <p className="text-red-400 text-center">{error}</p>;
         }
-        // --- UPDATED: Check unreadCount ---
         if (unreadCount === 0) {
             return <p className="text-slate-400 text-lg text-center">No new feedback. You're all caught up!</p>;
         }
 
         return (
             <div className="space-y-4">
-                {/* --- UPDATED: This only maps unread items --- */}
+                {/* This only maps unread items */}
                 {feedbacks.map((fb) => (
                     <div 
                         key={fb._id} 
-                        // --- UPDATED: Removed logic for "read" style ---
                         className="bg-slate-700 p-5 rounded-lg shadow-lg border-l-4 border-orange-500 hover:bg-slate-700/80 cursor-pointer transition-all duration-300 active:scale-[0.99] relative"
                         onClick={() => handleViewDetails(fb)}
                     >
-                        {/* --- NEW: "NEW" badge --- */}
+                        {/* "NEW" badge */}
                         <span className="absolute -top-2 -right-2 px-2 py-0.5 bg-blue-600 text-white text-xs font-bold rounded-full">
                             NEW
                         </span>
@@ -355,7 +365,6 @@ const AdminFeedbackPage = () => {
                     {/* --- Header with Mark All as Read button --- */}
                     <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4">
                         <h2 className="text-4xl font-bold text-slate-100">Customer Feedback Inbox</h2>
-                        {/* --- UPDATED: Checks unreadCount --- */}
                         {unreadCount > 0 && (
                             <button 
                                 onClick={handleMarkAllAsRead}

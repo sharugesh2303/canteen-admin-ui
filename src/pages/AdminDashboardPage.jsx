@@ -12,6 +12,15 @@ import { MdCampaign, MdFastfood, MdLocalDrink, MdOutlineBreakfastDining, MdOutli
 import { FaPlusCircle, FaUtensils, FaClipboardList, FaChartLine, FaSearch, FaClock, FaRedo, FaQuestionCircle, FaArrowLeft } from 'react-icons/fa'; 
 import AdminMenuItemCard from '../components/AdminMenuItemCard.jsx'; // Make sure to update this file too!
 
+// ================================================
+// !!! VERCEL DEPLOYMENT FIX: API URLS !!!
+// ================================================
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000/api';
+const API_ROOT_URL = (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace("/api", "") : 'http://localhost:10000');
+// ================================================
+// !!! END OF FIX !!!
+// ================================================
+
 const POLLING_INTERVAL = 15 * 1000; // 15 seconds
 
 const DEFAULT_SERVICE_HOURS = {
@@ -31,23 +40,21 @@ const getAdminAuthHeaders = (token) => ({
     'Content-Type': 'application/json',
 });
 
-// **NEW HELPER FUNCTION FOR CORRECTING IMAGE URL** 💡 FIX 1 of 3
+// **HELPER FUNCTION FOR CORRECTING IMAGE URL (FIXED)**
 const getFullImageUrl = (imagePath) => {
     if (!imagePath) return '';
-    const BASE_UPLOAD_URL = "http://localhost:5000/uploads/";
+    // Use the new API_ROOT_URL variable
+    const BASE_UPLOAD_URL = `${API_ROOT_URL}/uploads/`;
 
-    // If the path already looks like a full URL, return it.
     if (imagePath.startsWith('http')) {
         return imagePath;
     }
-    // If it's a relative path (starts with /), prepend the base URL.
     if (imagePath.startsWith('/')) {
-        return `http://localhost:5000${imagePath}`;
+        return `${API_ROOT_URL}${imagePath}`;
     }
-    // If it's just the filename/ID (e.g., "1761152232952.jpg"), prepend the full path.
     return BASE_UPLOAD_URL + imagePath;
 };
-// **END NEW HELPER**
+// **END HELPER**
 
 // --- SparkleOverlay Component (omitted for brevity) ---
 const SparkleOverlay = () => {
@@ -89,8 +96,6 @@ const RealTimeClock = () => {
 };
 
 // --- TimeSelectInput Component (SIMPLIFIED TO STANDARD TEXT INPUTS) ---
-// Note: The original TimeSelectInput component was complex and likely caused the rendering error.
-// We are replacing it with a basic input field for time to unblock the dashboard.
 const SimpleTimeInput = ({ name, value, onChange }) => {
     const baseClasses = "mt-1 p-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 transition bg-slate-700 text-white w-full";
     return (
@@ -150,10 +155,8 @@ const AdminSubCategoryCard = ({ subCategory, onClick }) => {
             className="bg-slate-800 rounded-xl shadow-lg overflow-hidden flex flex-col items-center group transition-all duration-300 hover:shadow-orange-500/50 hover:shadow-xl hover:-translate-y-1 border border-slate-700 hover:ring-2 hover:ring-orange-400/50 active:scale-[0.98] cursor-pointer p-4 w-40 h-48 justify-center" 
         >
             <img
-                // 💡 FIX 2 of 3: The subCategory image fix is applied when calling this component,
-                // but we apply the helper here too, for safety/completeness inside the component logic.
-                // NOTE: This *still* assumes the incoming subCategory.imageUrl has been fixed by the caller (see 💡 FIX 3).
-                src={subCategory.imageUrl || 'https://placehold.co/100x100/1e293b/475569?text=Img'} 
+                // Use the helper to fix the image URL
+                src={getFullImageUrl(subCategory.imageUrl) || 'https://placehold.co/100x100/1e293b/475569?text=Img'} 
                 alt={subCategory.name}
                 className="w-24 h-24 object-cover rounded-full mb-3 group-hover:scale-105 transition-transform duration-300 border-2 border-slate-600"
             />
@@ -182,7 +185,8 @@ const AdminDashboardPage = () => {
     // --- Service Hours Functions ---
     const fetchServiceHours = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/service-hours/public');
+            // Use API_BASE_URL
+            const res = await axios.get(`${API_BASE_URL}/service-hours/public`);
             setServiceHours(res.data);
             localStorage.setItem('canteenServiceHours', JSON.stringify(res.data));
         } catch (err) { console.warn("Failed to fetch service hours, using local/default."); }
@@ -196,7 +200,8 @@ const AdminDashboardPage = () => {
         if (!token) { alert('Authentication error. Please log in again.'); navigate('/login'); return; }
         try {
             const dataToSend = { ...serviceHours };
-            const res = await axios.patch('http://localhost:5000/api/admin/service-hours', dataToSend, { headers: getAdminAuthHeaders(token) }); 
+            // Use API_BASE_URL
+            const res = await axios.patch(`${API_BASE_URL}/admin/service-hours`, dataToSend, { headers: getAdminAuthHeaders(token) }); 
             setServiceHours(res.data);
             localStorage.setItem('canteenServiceHours', JSON.stringify(res.data));
             alert('Service hours saved successfully!');
@@ -208,7 +213,8 @@ const AdminDashboardPage = () => {
             const token = localStorage.getItem('admin_token');
             if (!token) { alert('Authentication error. Please log in again.'); navigate('/login'); return; }
             try {
-                const res = await axios.patch('http://localhost:5000/api/admin/service-hours', DEFAULT_SERVICE_HOURS, { headers: getAdminAuthHeaders(token) }); 
+                // Use API_BASE_URL
+                const res = await axios.patch(`${API_BASE_URL}/admin/service-hours`, DEFAULT_SERVICE_HOURS, { headers: getAdminAuthHeaders(token) }); 
                 setServiceHours(res.data);
                 localStorage.setItem('canteenServiceHours', JSON.stringify(res.data));
                 alert('Hours reset to default globally.');
@@ -220,7 +226,8 @@ const AdminDashboardPage = () => {
     // --- Canteen Status Functions ---
     const fetchCanteenStatus = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/canteen-status/public');
+            // Use API_BASE_URL
+            const res = await axios.get(`${API_BASE_URL}/canteen-status/public`);
             setIsCanteenOpen(res.data.isOpen);
             return res.data.isOpen;
         } catch (err) { console.warn("Could not fetch canteen status."); setIsCanteenOpen(false); return false; }
@@ -233,7 +240,8 @@ const AdminDashboardPage = () => {
             return;
         }
         try {
-            const response = await axios.patch('http://localhost:5000/api/admin/canteen-status',
+            // Use API_BASE_URL
+            const response = await axios.patch(`${API_BASE_URL}/admin/canteen-status`,
                 {},
                 { headers: getAdminAuthHeaders(token) } 
             );
@@ -251,20 +259,24 @@ const AdminDashboardPage = () => {
         try {
             const token = localStorage.getItem('admin_token');
             if (!token) { navigate('/login'); return; }
-            const res = await axios.get('http://localhost:5000/api/admin/menu', { headers: getAdminAuthHeaders(token) });
+            // Use API_BASE_URL
+            const res = await axios.get(`${API_BASE_URL}/admin/menu`, { headers: getAdminAuthHeaders(token) });
             setMenuItems(res.data || []);
         } catch (err) { 
             console.error("Fetch Admin Menu Error:", err.response?.data || err.message); 
             if (err.response?.status === 401) {
                  setError('Session expired. Please log in again.');
-                 handleLogout();
+                 handleLogout(); // Use the logout function
             } else {
-                setError('Failed to fetch menu items.'); 
+                 setError('Failed to fetch menu items. Check connection or reload.'); 
             }
             setMenuItems([]); 
         }
         finally { setLoading(false); }
      };
+
+    // --- Logout --- (Defined once)
+    const handleLogout = () => { localStorage.removeItem('admin_token'); navigate('/login'); };
 
     useEffect(() => {
         fetchCanteenStatus();
@@ -297,7 +309,7 @@ const AdminDashboardPage = () => {
                 const subCategoryName = subCategory?.name || 'Other Snacks';
 
                 if (subCategory && !subCategoryDetailsMap.has(subCategoryId)) {
-                    // 💡 FIX 3 of 3: Ensure the SubCategory imageUrl is corrected here for the map
+                    // Use the helper to fix the image URL
                     const correctedImageUrl = getFullImageUrl(subCategory.imageUrl); 
                     subCategoryDetailsMap.set(subCategoryId, { _id: subCategoryId, name: subCategoryName, imageUrl: correctedImageUrl });
                 } else if (!subCategory && !subCategoryDetailsMap.has('other')){
@@ -324,11 +336,11 @@ const AdminDashboardPage = () => {
                 });
             sortedGroups.Snacks = sortedSnackSubCats;
         }
-          Object.keys(sortedGroups).forEach(catName => {
-              if (catName !== 'Snacks' && Array.isArray(sortedGroups[catName])) {
-                  sortedGroups[catName].sort((a, b) => a.name.localeCompare(b.name));
-              }
-        });
+         Object.keys(sortedGroups).forEach(catName => {
+             if (catName !== 'Snacks' && Array.isArray(sortedGroups[catName])) {
+                 sortedGroups[catName].sort((a, b) => a.name.localeCompare(b.name));
+             }
+      });
 
         return { ...sortedGroups, subCategoryDetails: subCategoryDetailsMap };
     }, [menuItems, searchTerm]);
@@ -355,14 +367,12 @@ const AdminDashboardPage = () => {
             const token = localStorage.getItem('admin_token');
             if (!token) { alert('Authentication error. Please log in again.'); navigate('/login'); return; }
             try {
-                await axios.delete(`http://localhost:5000/api/menu/${itemId}`, { headers: getAdminAuthHeaders(token) });
+                // Use API_BASE_URL
+                await axios.delete(`${API_BASE_URL}/menu/${itemId}`, { headers: getAdminAuthHeaders(token) });
                 fetchAdminMenuItems(); 
             } catch (err) { setError('Failed to delete item.'); console.error("Delete Err:", err.response?.data || err.message); }
         }
     };
-
-    // --- Logout ---
-    const handleLogout = () => { localStorage.removeItem('admin_token'); navigate('/login'); };
 
     // --- Service Hours Display (omitted for brevity) ---
     const mealDisplayNames = { breakfast: "Breakfast Slot", lunch: "Lunch Slot" };
@@ -446,31 +456,31 @@ const AdminDashboardPage = () => {
 
                     {/* Service Hours Form */}
                     <div className="flex justify-between items-center bg-slate-700/50 p-4 rounded-xl mb-6 cursor-pointer hover:bg-slate-700 transition-colors" onClick={() => setIsHoursFormVisible(p => !p)}>
-                         <h3 className="text-xl font-bold text-slate-100 flex items-center gap-2"><FaClock /> Manage Service Hours</h3>
-                         <span className="text-orange-400">{isHoursFormVisible ? 'Hide' : 'Show'}</span>
+                        <h3 className="text-xl font-bold text-slate-100 flex items-center gap-2"><FaClock /> Manage Service Hours</h3>
+                        <span className="text-orange-400">{isHoursFormVisible ? 'Hide' : 'Show'}</span>
                     </div>
                     {isHoursFormVisible && (
-                         <div className="bg-slate-800 rounded-xl shadow-2xl p-6 mb-10 border-t-4 border-blue-500">
-                              <form onSubmit={handleSaveHours}>
-                                 <h3 className="text-xl font-bold mb-6 text-slate-100">Set Daily Service Slots (24h format HH:MM)</h3>
-                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                     <div className="flex space-x-4 mb-4 col-span-full">
-                                         <button type="button" onClick={() => setSelectedMeal('breakfast')} className={`py-2 px-4 rounded-lg font-semibold transition-all active:scale-95 ${selectedMeal === 'breakfast' ? 'bg-orange-500 text-white shadow-md' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>Breakfast Hours</button>
-                                         <button type="button" onClick={() => setSelectedMeal('lunch')} className={`py-2 px-4 rounded-lg font-semibold transition-all active:scale-95 ${selectedMeal === 'lunch' ? 'bg-orange-500 text-white shadow-md' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>Lunch Hours</button>
-                                     </div>
-                                     <h4 className="text-lg font-bold mb-4 text-slate-100 border-b border-slate-700 pb-2 col-span-full">Editing: {mealDisplayNames[selectedMeal]}</h4>
-                                     
-                                     {/* 🐛 USING SIMPLE TIME INPUTS TO AVOID REF ERROR 🐛 */}
-                                     <label className="block text-slate-300">Start Time <SimpleTimeInput name={startKey} value={serviceHours[startKey]} onChange={handleHoursInputChange} /></label>
-                                     <label className="block text-slate-300">End Time <SimpleTimeInput name={endKey} value={serviceHours[endKey]} onChange={handleHoursInputChange} /></label>
-                                     
-                                 </div>
-                                 <div className="mt-6 flex justify-between">
-                                     <button type="button" onClick={handleResetHours} className="bg-gray-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-gray-600 transition-all shadow-md active:scale-95 flex items-center space-x-2"><FaRedo size={16} /> <span>Reset to Default</span></button>
-                                     <button type="submit" className="bg-blue-600 text-white font-semibold py-3 px-8 rounded-lg hover:bg-blue-700 transition-all shadow-md active:scale-95 shadow-blue-500/30">Save {selectedMeal.toUpperCase()} Hours</button>
-                                 </div>
-                              </form>
-                         </div>
+                        <div className="bg-slate-800 rounded-xl shadow-2xl p-6 mb-10 border-t-4 border-blue-500">
+                            <form onSubmit={handleSaveHours}>
+                                <h3 className="text-xl font-bold mb-6 text-slate-100">Set Daily Service Slots (24h format HH:MM)</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="flex space-x-4 mb-4 col-span-full">
+                                        <button type="button" onClick={() => setSelectedMeal('breakfast')} className={`py-2 px-4 rounded-lg font-semibold transition-all active:scale-95 ${selectedMeal === 'breakfast' ? 'bg-orange-500 text-white shadow-md' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>Breakfast Hours</button>
+                                        <button type="button" onClick={() => setSelectedMeal('lunch')} className={`py-2 px-4 rounded-lg font-semibold transition-all active:scale-95 ${selectedMeal === 'lunch' ? 'bg-orange-500 text-white shadow-md' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>Lunch Hours</button>
+                                    </div>
+                                    <h4 className="text-lg font-bold mb-4 text-slate-100 border-b border-slate-700 pb-2 col-span-full">Editing: {mealDisplayNames[selectedMeal]}</h4>
+                                    
+                                    {/* 🐛 USING SIMPLE TIME INPUTS TO AVOID REF ERROR 🐛 */}
+                                    <label className="block text-slate-300">Start Time <SimpleTimeInput name={startKey} value={serviceHours[startKey]} onChange={handleHoursInputChange} /></label>
+                                    <label className="block text-slate-300">End Time <SimpleTimeInput name={endKey} value={serviceHours[endKey]} onChange={handleHoursInputChange} /></label>
+                                    
+                                </div>
+                                <div className="mt-6 flex justify-between">
+                                    <button type="button" onClick={handleResetHours} className="bg-gray-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-gray-600 transition-all shadow-md active:scale-95 flex items-center space-x-2"><FaRedo size={16} /> <span>Reset to Default</span></button>
+                                    <button type="submit" className="bg-blue-600 text-white font-semibold py-3 px-8 rounded-lg hover:bg-blue-700 transition-all shadow-md active:scale-95 shadow-blue-500/30">Save {selectedMeal.toUpperCase()} Hours</button>
+                                </div>
+                            </form>
+                        </div>
                     )}
 
                     {/* Menu Title and Content Display */}
@@ -479,10 +489,10 @@ const AdminDashboardPage = () => {
                     </h2>
 
                     {loading ? ( /* ... loading spinner ... */ 
-                         <div className="text-center p-10 font-semibold text-slate-400 flex justify-center items-center space-x-2">
-                              <svg className="animate-spin h-5 w-5 text-orange-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"> <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                              <span>Loading menu...</span>
-                         </div>
+                        <div className="text-center p-10 font-semibold text-slate-400 flex justify-center items-center space-x-2">
+                            <svg className="animate-spin h-5 w-5 text-orange-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"> <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            <span>Loading menu...</span>
+                        </div>
                     ) : error ? (
                         <p className="text-red-400 text-center mt-10">{error}</p>
                     ) : (
@@ -506,9 +516,9 @@ const AdminDashboardPage = () => {
                                                     const CategoryIcon = categoryIcons[categoryName] || FaQuestionCircle;
                                                     const isActive = categoryName === activeAdminCategory;
                                                     return (
-                                                         <button key={categoryName} onClick={() => setActiveAdminCategory(categoryName)} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all border ${ isActive ? 'bg-orange-600 border-orange-500 text-white shadow-md scale-105' : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600 hover:border-slate-500' }`}>
-                                                             <CategoryIcon size={20} /> <span>{categoryName}</span>
-                                                         </button>
+                                                        <button key={categoryName} onClick={() => setActiveAdminCategory(categoryName)} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all border ${ isActive ? 'bg-orange-600 border-orange-500 text-white shadow-md scale-105' : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600 hover:border-slate-500' }`}>
+                                                            <CategoryIcon size={20} /> <span>{categoryName}</span>
+                                                        </button>
                                                     );
                                                 })}
                                             </div>
@@ -524,50 +534,50 @@ const AdminDashboardPage = () => {
                                             return (
                                                 <section key={categoryName} className="mt-8 border-t border-slate-700 pt-8">
                                                     <div className="flex justify-between items-center mb-6">
-                                                         <h3 className="text-2xl font-bold text-orange-400 flex items-center gap-3">
-                                                             <CategoryIcon size={28} className="text-orange-400/80"/>
-                                                             <span>{categoryName} {categoryName === 'Snacks' ? (selectedAdminSubCategoryId ? `- ${subCategoryDetailsMap.get(selectedAdminSubCategoryId)?.name || 'Items'}` : '- Subcategories') : 'Items'}</span>
-                                                         </h3>
+                                                        <h3 className="text-2xl font-bold text-orange-400 flex items-center gap-3">
+                                                            <CategoryIcon size={28} className="text-orange-400/80"/>
+                                                            <span>{categoryName} {categoryName === 'Snacks' ? (selectedAdminSubCategoryId ? `- ${subCategoryDetailsMap.get(selectedAdminSubCategoryId)?.name || 'Items'}` : '- Subcategories') : 'Items'}</span>
+                                                        </h3>
                                                         {categoryName === 'Snacks' && selectedAdminSubCategoryId && (
-                                                             <button onClick={handleBackToAdminSubCategories} className="flex items-center gap-2 text-sm text-orange-400 hover:text-orange-300 transition-colors bg-slate-700/50 px-3 py-1 rounded-md">
-                                                                 <FaArrowLeft /> Back to Snack Types
-                                                             </button>
+                                                            <button onClick={handleBackToAdminSubCategories} className="flex items-center gap-2 text-sm text-orange-400 hover:text-orange-300 transition-colors bg-slate-700/50 px-3 py-1 rounded-md">
+                                                                <FaArrowLeft /> Back to Snack Types
+                                                            </button>
                                                         )}
                                                     </div>
 
                                                     {categoryName === 'Snacks' ? (
-                                                         // --- Snacks View: Subcategories or Items ---
-                                                         !selectedAdminSubCategoryId ? (
-                                                                // Show Subcategory Grid
-                                                                 Object.keys(itemsOrSubcategories).length > 0 ? (
-                                                                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6 pl-4">
-                                                                        {Object.keys(itemsOrSubcategories).map(subCatId => {
-                                                                            const subCatDetail = subCategoryDetailsMap.get(subCatId);
-                                                                            return subCatDetail ? (
-                                                                                <AdminSubCategoryCard
-                                                                                    key={subCatId}
-                                                                                    subCategory={subCatDetail} 
-                                                                                    onClick={() => handleAdminSubCategoryClick(subCatId)}
-                                                                                />
-                                                                            ) : null;
-                                                                        })}
-                                                                     </div>
-                                                                 ) : ( <p className="text-slate-500 ml-6">No snack subcategories found.</p> )
-                                                         ) : (
-                                                                // Show Items Grid for selected subcategory
-                                                                 itemsOrSubcategories[selectedAdminSubCategoryId] && itemsOrSubcategories[selectedAdminSubCategoryId].length > 0 ? (
-                                                                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pl-4">
-                                                                         {itemsOrSubcategories[selectedAdminSubCategoryId].map((item) => <AdminMenuItemCard key={item._id} item={item} onEdit={() => navigate(`/admin/menu/edit/${item._id}`)} onDelete={handleDeleteItem} />)}
-                                                                     </div>
-                                                                ) : ( <p className="text-slate-500 ml-6">No items found in this subcategory.</p> )
-                                                         )
+                                                        // --- Snacks View: Subcategories or Items ---
+                                                        !selectedAdminSubCategoryId ? (
+                                                            // Show Subcategory Grid
+                                                            Object.keys(itemsOrSubcategories).length > 0 ? (
+                                                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6 pl-4">
+                                                                    {Object.keys(itemsOrSubcategories).map(subCatId => {
+                                                                        const subCatDetail = subCategoryDetailsMap.get(subCatId);
+                                                                        return subCatDetail ? (
+                                                                            <AdminSubCategoryCard
+                                                                                key={subCatId}
+                                                                                subCategory={subCatDetail} 
+                                                                                onClick={() => handleAdminSubCategoryClick(subCatId)}
+                                                                            />
+                                                                        ) : null;
+                                                                    })}
+                                                                </div>
+                                                            ) : ( <p className="text-slate-500 ml-6">No snack subcategories found.</p> )
+                                                        ) : (
+                                                            // Show Items Grid for selected subcategory
+                                                            itemsOrSubcategories[selectedAdminSubCategoryId] && itemsOrSubcategories[selectedAdminSubCategoryId].length > 0 ? (
+                                                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pl-4">
+                                                                    {itemsOrSubcategories[selectedAdminSubCategoryId].map((item) => <AdminMenuItemCard key={item._id} item={item} onEdit={() => navigate(`/admin/menu/edit/${item._id}`)} onDelete={handleDeleteItem} />)}
+                                                                </div>
+                                                            ) : ( <p className="text-slate-500 ml-6">No items found in this subcategory.</p> )
+                                                        )
                                                     ) : (
-                                                         // --- Other Categories View: Items Grid ---
-                                                          Array.isArray(itemsOrSubcategories) && itemsOrSubcategories.length > 0 ? (
-                                                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pl-4">
-                                                                  {itemsOrSubcategories.map((item) => <AdminMenuItemCard key={item._id} item={item} onEdit={() => navigate(`/admin/menu/edit/${item._id}`)} onDelete={handleDeleteItem} />)}
-                                                              </div>
-                                                          ) : ( <p className="text-slate-500 ml-6">No items in this category.</p> )
+                                                        // --- Other Categories View: Items Grid ---
+                                                         Array.isArray(itemsOrSubcategories) && itemsOrSubcategories.length > 0 ? (
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pl-4">
+                                                                {itemsOrSubcategories.map((item) => <AdminMenuItemCard key={item._id} item={item} onEdit={() => navigate(`/admin/menu/edit/${item._id}`)} onDelete={handleDeleteItem} />)}
+                                                            </div>
+                                                        ) : ( <p className="text-slate-500 ml-6">No items in this category.</p> )
                                                     )}
                                                 </section>
                                             );

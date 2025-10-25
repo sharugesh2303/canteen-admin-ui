@@ -4,10 +4,14 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App.jsx';
 import './index.css';
 
+// Force Vercel to make a new file again
+// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+// Add this line
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <App />
     </BrowserRouter>
-  </React.StrictMode>
+  </React.StrictMode>,
 );
