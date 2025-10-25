@@ -1,18 +1,20 @@
 /* =======================================
- * FILE: src/pages/AdminFeedbackPage.jsx
+ * FILE: src/pages/OrdersPage.jsx
  * ======================================= */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef } from 'react'; // <-- 1. Import forwardRef
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-// Icons for Header and Sidebar
-import { LuLogOut, LuMenu, LuX, LuMailCheck } from 'react-icons/lu';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+
+// ICONS from original OrdersPage
+import { LuLogOut, LuMenu, LuX } from 'react-icons/lu'; // Added LuMenu, LuX
+import { FaCheck, FaTruck, FaClipboardList, FaSearch } from 'react-icons/fa';
+// ICONS imported from AdminDashboardPage for new layout
 import { VscFeedback } from "react-icons/vsc";
 import { MdCampaign } from "react-icons/md";
-// Icons for Page and Sidebar
-import { FaPlusCircle, FaUtensils, FaClipboardList, FaChartLine } from 'react-icons/fa';
-// Modal Component
-import FeedbackDetailModal from '../components/FeedbackDetailModal'; 
+import { FaPlusCircle, FaUtensils, FaChartLine, FaQuestionCircle } from 'react-icons/fa';
 
 // ================================================
 // !!! VERCEL DEPLOYMENT FIX: API URLS !!!
@@ -22,15 +24,14 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000/api
 // !!! END OF FIX !!!
 // ================================================
 
-const POLLING_INTERVAL = 15 * 1000; // 15 seconds
 
-// --- Helper function for Authorization Header (FIXED) ---
+// --- Helper function for Authorization Header (from AdminDashboardPage) ---
 const getAdminAuthHeaders = (token) => ({
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json',
 });
 
-// --- SparkleOverlay Component (from Dashboard) ---
+// --- SparkleOverlay Component (from AdminDashboardPage) ---
 const SparkleOverlay = () => {
     const random = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
     const sparks = Array.from({ length: 40 }).map((_, i) => {
@@ -53,23 +54,7 @@ const SparkleOverlay = () => {
     );
 };
 
-// --- RealTimeClock Component (from Dashboard) ---
-const RealTimeClock = () => {
-    const [time, setTime] = useState(new Date());
-    useEffect(() => {
-        const timer = setInterval(() => setTime(new Date()), 1000);
-        return () => clearInterval(timer);
-    }, []);
-    const formattedTime = time.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
-    return (
-        <div className="text-right mt-1 px-4 md:px-8">
-            <p className="text-sm text-slate-400 font-medium leading-none">Current Time:</p>
-            <p className="text-lg font-extrabold text-orange-400 leading-none">{formattedTime}</p>
-        </div>
-    );
-};
-
-// --- AdminSidebarNav Component (from Dashboard) ---
+// --- AdminSidebarNav Component (from AdminDashboardPage) ---
 const AdminSidebarNav = ({ onClose }) => {
     const navigate = useNavigate();
     const NavItem = ({ to, icon: Icon, name, isActive = false }) => (
@@ -87,9 +72,9 @@ const AdminSidebarNav = ({ onClose }) => {
         <div className="space-y-2 p-4 pt-0">
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-700 pb-2">Actions</h3>
             <NavItem to="/menu" icon={FaUtensils} name="Menu Management" />
-            <NavItem to="/orders" icon={FaClipboardList} name="Orders" />
+            <NavItem to="/orders" icon={FaClipboardList} name="Orders" isActive={true} /> {/* <-- SET TO ACTIVE */}
             <NavItem to="/revenue" icon={FaChartLine} name="Revenue & Sales" />
-            <NavItem to="/feedback" icon={VscFeedback} name="Student Feedback" isActive={true} />
+            <NavItem to="/feedback" icon={VscFeedback} name="Student Feedback" />
             <NavItem to="/advertisement" icon={MdCampaign} name="Ads Management" />
             
             <div className="pt-4 border-t border-slate-700 mt-4">
@@ -106,19 +91,19 @@ const AdminSidebarNav = ({ onClose }) => {
 };
 
 
-// --- AdminFeedbackPage Component ---
-const AdminFeedbackPage = () => {
+// --- Main OrdersPage Component (Modified) ---
+const OrdersPage = () => {
     const navigate = useNavigate();
-    const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-    const [isCanteenOpen, setIsCanteenOpen] = useState(true);
-
-    // --- State specific to Feedback Page ---
-    const [feedbacks, setFeedbacks] = useState([]);
+    const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [selectedFeedback, setSelectedFeedback] = useState(null);
+    const [filter, setFilter] = useState('All');
+    const [searchTerm, setSearchTerm] = useState('');
+    // --- NEW STATE from AdminDashboardPage ---
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false); 
+    const [isCanteenOpen, setIsCanteenOpen] = useState(true);
 
-    // --- Canteen Status Functions (from Dashboard Header) ---
+    // --- NEW: Canteen Status Functions (from AdminDashboardPage) ---
     const fetchCanteenStatus = async () => {
         try {
             // Use API_BASE_URL
@@ -127,165 +112,132 @@ const AdminFeedbackPage = () => {
             return res.data.isOpen;
         } catch (err) { console.warn("Could not fetch canteen status."); setIsCanteenOpen(false); return false; }
     };
-    
     const handleToggleCanteen = async () => {
         const token = localStorage.getItem('admin_token');
-        if (!token) { navigate('/login'); return; }
-        try {
-            // Use API_BASE_URL
-            const response = await axios.patch(`${API_BASE_URL}/admin/canteen-status`, {}, { headers: getAdminAuthHeaders(token) });
-            setIsCanteenOpen(response.data.isOpen);
-            alert(`Canteen status set to ${response.data.isOpen ? 'OPEN' : 'CLOSED'}.`);
-        } catch (error) {
-            alert('Failed to update canteen status.');
-        }
-    };
-
-    // --- Logout Function (from Dashboard Header) ---
-    const handleLogout = () => { 
-        localStorage.removeItem('admin_token'); 
-        navigate('/login'); 
-    };
-
-    // --- Feedback Page Functions ---
-    const fetchFeedbacks = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const token = localStorage.getItem('admin_token');
-            if (!token) { navigate('/login'); return; }
-            
-            // Use API_BASE_URL and correct headers
-            const response = await axios.get(`${API_BASE_URL}/admin/feedback`, {
-                headers: getAdminAuthHeaders(token), 
-            });
-            
-            const unreadFeedback = response.data.filter(fb => !fb.isRead);
-            const sortedFeedback = unreadFeedback.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-            setFeedbacks(sortedFeedback);
-        } catch (err) {
-            setError('Failed to fetch feedback.');
-            console.error(err);
-            if (err.response?.status === 401) {
-                alert('Session expired. Please log in again.');
-                handleLogout();
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleMarkAsRead = async (feedbackId) => {
-        try {
-            const token = localStorage.getItem('admin_token');
-            if (!token) { navigate('/login'); return; }
-            
-            setFeedbacks(prevFeedbacks =>
-                prevFeedbacks.filter(fb => fb._id !== feedbackId)
-            );
-            
-            // Use API_BASE_URL and correct headers
-            await axios.patch(`${API_BASE_URL}/admin/feedback/${feedbackId}/read`, {}, {
-                headers: getAdminAuthHeaders(token),
-            });
-        } catch (err) {
-            console.error("Failed to mark as read.", err);
-            fetchFeedbacks(); // Re-fetch to get correct state
-        }
-    };
-
-    const handleMarkAllAsRead = async () => {
-        if (window.confirm('Are you sure you want to mark all feedback as read?')) {
-            try {
-                const token = localStorage.getItem('admin_token');
-                if (!token) { navigate('/login'); return; }
-                
-                setFeedbacks([]);
-                
-                // Use API_BASE_URL and correct headers
-                await axios.post(`${API_BASE_URL}/admin/feedback/mark-all-read`, {}, {
-                    headers: getAdminAuthHeaders(token),
-                });
-                
-                fetchFeedbacks(); // Refetch
-            } catch (err) {
-                alert('Failed to mark all as read.');
-                console.error(err);
-                fetchFeedbacks(); // Refetch
-            }
-        }
-    };
-
-    const handleViewDetails = (fb) => {
-        handleMarkAsRead(fb._id);
-        setSelectedFeedback(fb);
-    };
-
-    // Main useEffect
-    useEffect(() => {
-        const token = localStorage.getItem('admin_token');
         if (!token) {
+            alert('Authentication error. Please log in again.');
             navigate('/login');
             return;
         }
-        fetchCanteenStatus();
-        fetchFeedbacks();
-        const interval = setInterval(fetchCanteenStatus, POLLING_INTERVAL);
-        return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [navigate]); 
-
-    const unreadCount = feedbacks.length;
-
-    // Function to render feedback cards
-    const renderFeedbackCards = () => {
-        if (loading) {
-            return (
-                <div className="text-center p-10 font-semibold text-slate-400 flex justify-center items-center space-x-2">
-                    <svg className="animate-spin h-5 w-5 text-orange-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"> <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                    <span>Loading feedback...</span>
-                </div>
+        try {
+            // Use API_BASE_URL
+            const response = await axios.patch(`${API_BASE_URL}/admin/canteen-status`,
+                {},
+                { headers: getAdminAuthHeaders(token) } 
             );
+            setIsCanteenOpen(response.data.isOpen);
+            alert(`Canteen status set to ${response.data.isOpen ? 'OPEN' : 'CLOSED'}.`);
+        } catch (error) {
+            alert('Failed to update canteen status. Check console/server.');
+            console.error("Canteen Toggle Error:", error.response?.data || error.message);
         }
-        if (error) {
-            return <p className="text-red-400 text-center">{error}</p>;
-        }
-        if (unreadCount === 0) {
-            return <p className="text-slate-400 text-lg text-center">No new feedback. You're all caught up!</p>;
-        }
-
-        return (
-            <div className="space-y-4">
-                {feedbacks.map((fb) => (
-                    <div 
-                        key={fb._id} 
-                        className="bg-slate-700 p-5 rounded-lg shadow-lg border-l-4 border-orange-500 hover:bg-slate-700/80 cursor-pointer transition-all duration-300 active:scale-[0.99] relative"
-                        onClick={() => handleViewDetails(fb)}
-                    >
-                        <span className="absolute -top-2 -right-2 px-2 py-0.5 bg-blue-600 text-white text-xs font-bold rounded-full">
-                            NEW
-                        </span>
-                        <p className="text-slate-100 font-medium text-lg truncate">"{fb.feedbackText}"</p>
-                        <div className="flex justify-between items-center mt-3 pt-2 border-t border-slate-600/50">
-                            <p className="font-bold text-orange-400">
-                                {fb.studentName}
-                            </p>
-                            <p className="text-sm text-slate-400">
-                                {new Date(fb.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
-                            </p>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        );
     };
 
-    // --- Render ---
+    // --- MODIFIED: fetchOrders (Uses new Auth & API_BASE_URL) ---
+    const fetchOrders = async () => {
+        // Not setting loading to true here to allow silent refresh
+        try {
+            const token = localStorage.getItem('admin_token');
+            if (!token) { navigate('/login'); return; }
+            const config = { headers: getAdminAuthHeaders(token) };
+            // Use API_BASE_URL
+            const response = await axios.get(`${API_BASE_URL}/admin/orders`, config);
+            setOrders(response.data);
+        } catch (err) {
+            if (err.response?.status === 401) {
+                setError('Session expired. Please log in again.');
+                handleLogout();
+            } else {
+                setError('Failed to fetch orders.');
+            }
+            console.error(err);
+        } finally { setLoading(false); } // Only set loading false on initial load/error
+    };
+    
+    // --- MODIFIED: useEffect (fetches status too) ---
+    useEffect(() => {
+        setLoading(true); // Set loading true on first mount
+        fetchOrders();
+        fetchCanteenStatus(); // Fetch status on mount
+        
+        const interval = setInterval(() => {
+            fetchOrders(); // Silently refresh orders
+            fetchCanteenStatus(); // Silently refresh status
+        }, 30000); 
+
+        return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [navigate]);
+
+    const handleLogout = () => { localStorage.removeItem('admin_token'); navigate('/login'); };
+
+    // --- MODIFIED: handleMarkAsReady (Uses new Auth & API_BASE_URL) ---
+    const handleMarkAsReady = async (orderId) => {
+        try {
+            const token = localStorage.getItem('admin_token');
+            const config = { headers: getAdminAuthHeaders(token) };
+            // Use API_BASE_URL
+            const response = await axios.patch(`${API_BASE_URL}/admin/orders/${orderId}/mark-ready`, {}, config);
+            
+            if (response.status === 200) {
+                setOrders(orders.map(order => order._id === orderId ? response.data : order));
+            } else {
+                throw new Error('Update failed on the server.');
+            }
+        } catch (err) {
+            alert('Failed to update order status to Ready. Check backend route.');
+            console.error('Mark Ready Error:', err.response?.data || err.message);
+        }
+    };
+    
+    // --- MODIFIED: handleMarkAsDelivered (Uses new Auth & API_BASE_URL) ---
+    const handleMarkAsDelivered = async (orderId) => {
+        try {
+            const token = localStorage.getItem('admin_token');
+            const config = { headers: getAdminAuthHeaders(token) };
+            // Use API_BASE_URL
+            const response = await axios.patch(`${API_BASE_URL}/admin/orders/${orderId}/mark-delivered`, {}, config);
+            
+            if (response.status === 200) {
+                 setOrders(orders.map(order => order._id === orderId ? response.data : order));
+            } else {
+                 throw new Error('Update failed on the server.');
+            }
+        } catch (err) {
+            alert('Failed to update order status to Delivered. ENSURE BACKEND ROUTE IS PATCH /orders/:orderId/mark-delivered');
+            console.error('Mark Delivered Error:', err.response?.data || err.message);
+        }
+    };
+
+    // --- Filtering logic (Unchanged) ---
+    const filteredOrders = orders
+        .filter(order => {
+            const status = order.status;
+            const normalizedStatus = status === 'Paid' ? 'Paid' : status === 'Ready' ? 'Ready' : status === 'Delivered' ? 'Delivered' : 'Other';
+            if (filter === 'All') return true;
+            if (filter === 'Ready') return normalizedStatus === 'Ready';
+            if (filter === 'Paid') return normalizedStatus === 'Paid';
+            if (filter === 'Delivered') return normalizedStatus === 'Delivered';
+            return false;
+        })
+        .filter(order => (order.billNumber || '').toLowerCase().includes(searchTerm.toLowerCase())); // Added safeguard for billNumber
+
+    const getStatusBadge = (status) => {
+        switch (status) {
+            case 'Paid': return 'bg-yellow-900/40 text-yellow-400 font-bold'; 
+            case 'Ready': return 'bg-orange-900/40 text-orange-400 font-bold'; 
+            case 'Delivered': return 'bg-green-900/40 text-green-400 font-bold'; 
+            default: return 'bg-slate-700/40 text-slate-400';
+        }
+    };
+    
+
+    // --- RETURN: MODIFIED with AdminDashboardPage layout ---
     return (
         <div className="min-h-screen bg-slate-900 font-sans relative flex">
             <SparkleOverlay />
             
-            {/* --- MOBILE DRAWER/OVERLAY (from Dashboard) --- */}
+            {/* --- MOBILE DRAWER/OVERLAY (from AdminDashboardPage) --- */}
             <div 
                 className={`fixed inset-0 z-40 md:hidden transition-all duration-300 ${isDrawerOpen ? 'bg-black/50 pointer-events-auto' : 'bg-black/0 pointer-events-none'}`}
                 onClick={() => setIsDrawerOpen(false)}
@@ -304,7 +256,7 @@ const AdminFeedbackPage = () => {
                 </div>
             </div>
 
-            {/* --- DESKTOP SIDEBAR (from Dashboard) --- */}
+            {/* --- DESKTOP SIDEBAR (from AdminDashboardPage) --- */}
             <aside className="hidden md:block w-64 bg-slate-800 border-r border-slate-700 sticky top-0 h-screen overflow-y-auto flex-shrink-0 z-20">
                 <div className="p-4 py-6">
                     <h1 className="text-2xl font-extrabold text-orange-400">Admin Portal</h1>
@@ -314,16 +266,20 @@ const AdminFeedbackPage = () => {
 
             {/* --- MAIN CONTENT AREA (Wrapper from AdminDashboardPage) --- */}
             <div className="flex-grow relative z-10 min-h-screen">
-                
-                {/* --- HEADER (from Dashboard) --- */}
+            
+                {/* --- NEW HEADER (from AdminDashboardPage, modified) --- */}
                 <header className="bg-gray-900 text-white shadow-lg p-4 flex justify-between items-center sticky top-0 z-30 border-b border-slate-700">
                     <div className="flex items-center space-x-3">
                         {/* Hamburger Button for mobile */}
                         <button className="md:hidden text-white" onClick={() => setIsDrawerOpen(true)}>
                             <LuMenu size={24} />
                         </button>
-                        <div className="text-xl font-extrabold text-orange-400 hidden md:block">JJ College Smart Canteen</div>
-                        <div className="text-xl font-extrabold text-orange-400 md:hidden">Canteen Admin</div>
+                        {/* Page Title */}
+                        <div className="flex items-center gap-2">
+                            <FaClipboardList size={20} className="text-orange-400" />
+                            <div className="text-xl font-extrabold text-orange-400 hidden md:block">Order Management</div>
+                            <div className="text-xl font-extrabold text-orange-400 md:hidden">Orders</div>
+                        </div>
                     </div>
                     
                     <div className="flex items-center space-x-4">
@@ -338,39 +294,84 @@ const AdminFeedbackPage = () => {
                         </button>
                     </div>
                 </header>
-                <RealTimeClock />
-
-                {/* --- MAIN CONTENT (Feedback Page Content) --- */}
-                <main className="container mx-auto p-4 md:p-8">
                 
-                    {/* --- Header with Mark All as Read button --- */}
-                    <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4">
-                        <h2 className="text-4xl font-bold text-slate-100">Customer Feedback Inbox</h2>
-                        {unreadCount > 0 && (
-                            <button 
-                                onClick={handleMarkAllAsRead}
-                                className="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition active:scale-95 flex items-center justify-center space-x-2 shadow-md shadow-blue-500/30"
-                            >
-                                <LuMailCheck size={18} />
-                                <span>Mark All as Read ({unreadCount})</span>
-                            </button>
-                        )}
+                {/* --- Original <main> content from OrdersPage --- */}
+                <main className="container mx-auto p-4 md:p-8">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                        <h2 className="text-4xl font-bold text-slate-100 mb-4 md:mb-0">Placed Orders</h2>
+                        <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full md:w-auto">
+                            
+                            {/* Search Input (Unchanged) */}
+                            <div className="relative w-full md:w-64">
+                                <input type="text" placeholder="Search by Bill Number..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} 
+                                    className="p-2 pl-10 border border-slate-600 rounded-lg w-full bg-slate-800 text-lg text-white placeholder-slate-400 focus:ring-1 focus:ring-orange-500"/>
+                                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
+                            </div>
+
+                            {/* Filter Buttons (Unchanged) */}
+                            <div className="flex space-x-2 bg-slate-700 p-1 rounded-lg shadow-inner">
+                                <button onClick={() => setFilter('All')} className={`px-4 py-2 rounded-md text-base font-semibold transition-colors ${filter === 'All' ? 'bg-orange-500 text-white shadow-md' : 'text-slate-300 hover:bg-slate-600'}`}>All</button>
+                                <button onClick={() => setFilter('Paid')} className={`px-4 py-2 rounded-md text-base font-semibold transition-colors ${filter === 'Paid' ? 'bg-orange-500 text-white shadow-md' : 'text-slate-300 hover:bg-slate-600'}`}>New (Paid)</button>
+                                <button onClick={() => setFilter('Ready')} className={`px-4 py-2 rounded-md text-base font-semibold transition-colors ${filter === 'Ready' ? 'bg-orange-500 text-white shadow-md' : 'text-slate-300 hover:bg-slate-600'}`}>Ready to Serve</button>
+                                <button onClick={() => setFilter('Delivered')} className={`px-4 py-2 rounded-md text-base font-semibold transition-colors ${filter === 'Delivered' ? 'bg-orange-500 text-white shadow-md' : 'text-slate-300 hover:bg-slate-600'}`}>Delivered</button>
+                            </div>
+                        </div>
                     </div>
                     
-                    <div className="bg-slate-800 p-6 rounded-xl shadow-2xl max-w-5xl mx-auto border border-slate-700">
-                        {/* Render the feedback cards via the dedicated function call */}
-                        {renderFeedbackCards()}
-                    </div>
+                    {/* Order Table (Unchanged) */}
+                    {loading ? (<p className="text-slate-400 text-center p-10">Loading orders...</p>) : error ? (<p className="text-red-400 text-center p-10">{error}</p>) : (
+                        <div className="bg-slate-800 rounded-lg shadow-xl overflow-x-auto border border-slate-700">
+                            <table className="min-w-full divide-y divide-slate-700">
+                                <thead className="bg-slate-700/70">
+                                    <tr>
+                                        <th className="px-6 py-4 text-left text-sm font-semibold text-orange-400 uppercase tracking-wider">Bill Number</th>
+                                        <th className="px-6 py-4 text-left text-sm font-semibold text-orange-400 uppercase tracking-wider">Student Name</th>
+                                        <th className="px-6 py-4 text-left text-sm font-semibold text-orange-400 uppercase tracking-wider">Date</th>
+                                        <th className="px-6 py-4 text-left text-sm font-semibold text-orange-400 uppercase tracking-wider">Items</th>
+                                        <th className="px-6 py-4 text-left text-sm font-semibold text-orange-400 uppercase tracking-wider">Total</th>
+                                        <th className="px-6 py-4 text-left text-sm font-semibold text-orange-400 uppercase tracking-wider">Status</th>
+                                        <th className="px-6 py-4 text-left text-sm font-semibold text-orange-400 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-700">
+                                    {filteredOrders.length > 0 ? filteredOrders.map((order) => (
+                                        <tr key={order._id} className="hover:bg-slate-700/50 transition-colors">
+                                            <td className="px-6 py-4 whitespace-nowrap font-mono text-lg text-slate-300">{order.billNumber}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap font-medium text-lg text-slate-100">{order.studentName}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-base text-slate-400">{new Date(order.orderDate).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}</td>
+                                            <td className="px-6 py-4 whitespace-nowGrap text-base text-slate-400">
+                                                {order.items.reduce((sum, item) => sum + item.quantity, 0)}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap font-bold text-lg text-orange-400">₹{order.totalAmount.toFixed(2)}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap"><span className={`px-3 py-1 inline-flex text-base leading-5 font-semibold rounded-full ${getStatusBadge(order.status)}`}>{order.status}</span></td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-base font-medium">
+                                                {order.status === 'Paid' && (
+                                                    <button onClick={() => handleMarkAsReady(order._id)} className="px-4 py-2 bg-purple-500 text-white text-sm font-semibold rounded-lg hover:bg-purple-600 flex items-center space-x-1 transition duration-150 active:scale-95">
+                                                        <FaTruck size={12} /> <span>Mark Ready</span>
+                                                    </button>
+                                                )}
+                                                {order.status === 'Ready' && (
+                                                    <button onClick={() => handleMarkAsDelivered(order._id)} className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 flex items-center space-x-1 transition duration-150 active:scale-95">
+                                                        <FaCheck size={12} /> <span>Delivered</span>
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    )) : (
+                                        <tr>
+                                            <td colSpan="7" className="text-center text-slate-400 py-10">
+                                                No orders found matching the criteria.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </main>
-
-                {/* Modal for displaying full feedback */}
-                <FeedbackDetailModal 
-                    feedback={selectedFeedback} 
-                    onClose={() => setSelectedFeedback(null)} 
-                />
             </div>
         </div>
     );
 };
 
-export default AdminFeedbackPage;
+export default OrdersPage;
