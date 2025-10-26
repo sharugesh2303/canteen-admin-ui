@@ -1,6 +1,6 @@
 /* ==================================
- * FILE: src/pages/AdminMenuFormPage.jsx
- * ================================== */
+ * FILE: src/pages/AdminMenuFormPage.jsx
+ * ================================== */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
@@ -207,26 +207,26 @@ const AddSubCategoryModal = ({ onSave, onCancel, isSubmitting }) => {
 // --- EditSubCategory Modal Component ---
 const EditSubCategoryModal = ({ subCategory, onSave, onCancel, isSubmitting }) => {
     const [name, setName] = useState(subCategory ? subCategory.name : '');
-    const [file, setFile] = useState(null);
-    const [preview, setPreview] = useState(subCategory ? getFullImageUrl(subCategory.imageUrl) : null);
-    
-    // State to hold the initially fetched image URL (if editing)
-    const existingImageUrl = subCategory ? getFullImageUrl(subCategory.imageUrl) : null;
+    const [file, setFile] = useState(null);
+    const [preview, setPreview] = useState(subCategory ? getFullImageUrl(subCategory.imageUrl) : null);
+    
+    // State to hold the initially fetched image URL (if editing)
+    const existingImageUrl = subCategory ? getFullImageUrl(subCategory.imageUrl) : null;
 
     useEffect(() => {
         if (subCategory) {
             setName(subCategory.name);
-            setPreview(getFullImageUrl(subCategory.imageUrl));
+            setPreview(getFullImageUrl(subCategory.imageUrl));
         }
     }, [subCategory]);
 
-    const handleFileChange = (e) => {
-        const selectedFile = e.target.files[0];
-        if (selectedFile) {
-            setFile(selectedFile);
-            setPreview(URL.createObjectURL(selectedFile));
-        }
-    };
+    const handleFileChange = (e) => {
+        const selectedFile = e.target.files[0];
+        if (selectedFile) {
+            setFile(selectedFile);
+            setPreview(URL.createObjectURL(selectedFile));
+        }
+    };
 
     const handleSubmit = () => {
         if (!name.trim()) {
@@ -254,33 +254,33 @@ const EditSubCategoryModal = ({ subCategory, onSave, onCancel, isSubmitting }) =
                             className="w-full mt-1 p-2 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 transition bg-slate-700 text-white"
                         />
                     </label>
-                    {/* NEW: Subcategory Image Upload for Edit */}
-                    <label className="block text-slate-300">
-                        Subcategory Image (Optional Update)
-                        <div className="mt-1 p-4 border-2 border-dashed border-slate-600 rounded-lg text-center cursor-pointer hover:border-blue-500">
-                            <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={handleFileChange}
-                                id="edit-subcat-file-upload" 
-                            />
-                            <label htmlFor="edit-subcat-file-upload" className="cursor-pointer">
-                                {(!preview) ? (
-                                    <>
-                                        <FaUpload className="mx-auto text-slate-400" size={30} />
-                                        <p className="text-sm text-slate-400 mt-2">Click to upload new image</p>
-                                    </>
-                                ) : (
-                                    <>
-                                        <img src={preview} alt="Current Image" className="w-32 h-32 object-cover mx-auto rounded-full border-2 border-slate-500" />
-                                        <p className="text-sm text-blue-400 mt-2">Click to change image</p>
-                                    </>
-                                )}
-                            </label>
-                        </div>
-                    </label>
-                    {/* END NEW: Subcategory Image Upload for Edit */}
+                    {/* NEW: Subcategory Image Upload for Edit */}
+                    <label className="block text-slate-300">
+                        Subcategory Image (Optional Update)
+                        <div className="mt-1 p-4 border-2 border-dashed border-slate-600 rounded-lg text-center cursor-pointer hover:border-blue-500">
+                            <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleFileChange}
+                                id="edit-subcat-file-upload" 
+                            />
+                            <label htmlFor="edit-subcat-file-upload" className="cursor-pointer">
+                                {(!preview) ? (
+                                    <>
+                                        <FaUpload className="mx-auto text-slate-400" size={30} />
+                                        <p className="text-sm text-slate-400 mt-2">Click to upload new image</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <img src={preview} alt="Current Image" className="w-32 h-32 object-cover mx-auto rounded-full border-2 border-slate-500" />
+                                        <p className="text-sm text-blue-400 mt-2">Click to change image</p>
+                                    </>
+                                )}
+                            </label>
+                        </div>
+                    </label>
+                    {/* END NEW: Subcategory Image Upload for Edit */}
                     <div className="flex justify-end space-x-4 pt-4">
                         <button
                             type="button"
@@ -443,6 +443,7 @@ const AdminMenuFormPage = () => {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+        // UPDATED: If the new category is not 'Snacks', clear the subCategory field.
         if (name === 'category' && value !== 'Snacks') {
             setFormData(prev => ({ ...prev, subCategory: '' }));
         }
@@ -726,6 +727,7 @@ const AdminMenuFormPage = () => {
                                     <option value="Lunch">Lunch</option>
                                     <option value="Drinks">Drinks</option>
                                     <option value="Stationery">Stationery</option>
+                                    <option value="Essentials">Essentials</option> {/* 🟢 ADDED ESSENTIALS CATEGORY */}
                                 </select>
                             </label>
 
