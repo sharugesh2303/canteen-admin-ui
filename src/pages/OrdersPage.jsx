@@ -1,5 +1,6 @@
 /* =======================================
  * FILE: src/pages/OrdersPage.jsx
+ * Admin/Chef Order Queue Management
  * ======================================= */
 
 import React, { useState, useEffect, forwardRef } from 'react'; 
@@ -16,7 +17,7 @@ import { MdCampaign } from "react-icons/md";
 import { FaPlusCircle, FaUtensils, FaChartLine } from 'react-icons/fa';
 
 // ================================================
-// !!! VERCEL DEPLOYMENT FIX: API URLS !!!
+// API URL CONFIGURATION
 // ================================================
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000/api';
 // ================================================
@@ -74,7 +75,7 @@ const AdminSidebarNav = ({ onClose }) => {
             <NavItem to="/advertisement" icon={MdCampaign} name="Ads Management" />
             
             <div className="pt-4 border-t border-slate-700 mt-4">
-                <Link to="/admin/menu/add" className="block w-full" onClick={onClose}>
+                <Link to="/admin/menu/add" className="block w-full" onClose={onClose}>
                     <button className="w-full flex items-center p-3 rounded-lg transition-colors duration-200 space-x-3 text-left bg-green-600 text-white hover:bg-green-700 shadow-md">
                         <FaPlusCircle size={20} className="flex-shrink-0" />
                         <span className="font-bold">Add New Menu Item</span>
@@ -132,6 +133,7 @@ const OrdersPage = () => {
             const token = localStorage.getItem('admin_token');
             if (!token) { navigate('/login'); return; }
             const config = { headers: getAdminAuthHeaders(token) };
+            // Fetch ALL non-expired orders 
             const response = await axios.get(`${API_BASE_URL}/admin/orders`, config);
             setOrders(response.data);
         } catch (err) {
@@ -167,16 +169,19 @@ const OrdersPage = () => {
             const token = localStorage.getItem('admin_token');
             const config = { headers: getAdminAuthHeaders(token) };
             
-            // NOTE: The backend route should be patched to use the Bill Number, 
-            // but this front-end code uses the MongoDB _id (orderId) as per the function signature.
-            // If backend uses billNumber, the API path must be changed here.
+            // NOTE: orderId here is the MongoDB _id, assuming backend uses this in its PATCH route
             const response = await axios.patch(`${API_BASE_URL}/admin/orders/${orderId}/mark-ready`, {}, config);
             
             if (response.status === 200) {
-                // FIX: Update state immediately with the response data (new status)
-                setOrders(prevOrders => prevOrders.map(order => 
-                    order._id === orderId ? response.data : order
-                ));
+                // 🔑 CRITICAL FIX: Use setTimeout(0) to schedule the state update, forcing an immediate re-render
+                setTimeout(() => {
+                    setOrders(prevOrders => prevOrders.map(order => 
+                        order._id === orderId ? response.data : order
+                    ));
+                }, 0); 
+                
+                alert(`Order ${response.data.billNumber} status changed to READY!`);
+
             } else {
                 throw new Error('Update failed on the server.');
             }
@@ -192,13 +197,18 @@ const OrdersPage = () => {
             const token = localStorage.getItem('admin_token');
             const config = { headers: getAdminAuthHeaders(token) };
             
+            // NOTE: orderId here is the MongoDB _id, assuming backend uses this in its PATCH route
             const response = await axios.patch(`${API_BASE_URL}/admin/orders/${orderId}/mark-delivered`, {}, config);
             
             if (response.status === 200) {
-                // FIX: Update state immediately with the response data (new status)
-                setOrders(prevOrders => prevOrders.map(order => 
-                    order._id === orderId ? response.data : order
-                ));
+                // 🔑 CRITICAL FIX: Use setTimeout(0) to schedule the state update, forcing an immediate re-render
+                setTimeout(() => {
+                    setOrders(prevOrders => prevOrders.map(order => 
+                        order._id === orderId ? response.data : order
+                    ));
+                }, 0); 
+
+                alert(`Order ${response.data.billNumber} status changed to DELIVERED!`);
             } else {
                 throw new Error('Update failed on the server.');
             }
@@ -208,7 +218,7 @@ const OrdersPage = () => {
         }
     };
 
-    // --- Filtering logic (Unchanged) ---
+    // --- Filtering logic ---
     const filteredOrders = orders
         .filter(order => {
             const status = order.status;
@@ -266,7 +276,7 @@ const OrdersPage = () => {
             {/* --- MAIN CONTENT AREA --- */}
             <div className="flex-grow relative z-10 min-h-screen">
             
-                {/* --- NEW HEADER --- */}
+                {/* --- HEADER --- */}
                 <header className="bg-gray-900 text-white shadow-lg p-4 flex justify-between items-center sticky top-0 z-30 border-b border-slate-700">
                     <div className="flex items-center space-x-3">
                         <button className="md:hidden text-white" onClick={() => setIsDrawerOpen(true)}>
