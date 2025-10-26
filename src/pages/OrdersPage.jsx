@@ -133,7 +133,6 @@ const OrdersPage = () => {
             const token = localStorage.getItem('admin_token');
             if (!token) { navigate('/login'); return; }
             const config = { headers: getAdminAuthHeaders(token) };
-            // Fetch ALL non-expired orders 
             const response = await axios.get(`${API_BASE_URL}/admin/orders`, config);
             setOrders(response.data);
         } catch (err) {
@@ -163,24 +162,28 @@ const OrdersPage = () => {
 
     const handleLogout = () => { localStorage.removeItem('admin_token'); navigate('/login'); };
 
-    // --- Action: Mark As Ready (FIXED FOR INSTANT UPDATE) ---
+    // --- Action: Mark As Ready (ULTIMATE FIX FOR INSTANT UPDATE) ---
     const handleMarkAsReady = async (orderId) => {
         try {
             const token = localStorage.getItem('admin_token');
             const config = { headers: getAdminAuthHeaders(token) };
             
-            // NOTE: orderId here is the MongoDB _id, assuming backend uses this in its PATCH route
             const response = await axios.patch(`${API_BASE_URL}/admin/orders/${orderId}/mark-ready`, {}, config);
             
             if (response.status === 200) {
-                // 🔑 CRITICAL FIX: Use setTimeout(0) to schedule the state update, forcing an immediate re-render
-                setTimeout(() => {
-                    setOrders(prevOrders => prevOrders.map(order => 
-                        order._id === orderId ? response.data : order
-                    ));
-                }, 0); 
+                const updatedOrder = response.data;
                 
-                alert(`Order ${response.data.billNumber} status changed to READY!`);
+                // 🔑 ULTIMATE FIX: Create a shallow copy and replace the single item
+                setOrders(prevOrders => {
+                    const newOrders = [...prevOrders];
+                    const index = newOrders.findIndex(order => order._id === orderId);
+                    if (index !== -1) {
+                        newOrders[index] = updatedOrder;
+                    }
+                    return newOrders; // Returns a brand new array reference for guaranteed re-render
+                });
+                
+                alert(`Order ${updatedOrder.billNumber} status changed to READY!`);
 
             } else {
                 throw new Error('Update failed on the server.');
@@ -191,24 +194,28 @@ const OrdersPage = () => {
         }
     };
     
-    // --- Action: Mark As Delivered (FIXED FOR INSTANT UPDATE) ---
+    // --- Action: Mark As Delivered (ULTIMATE FIX FOR INSTANT UPDATE) ---
     const handleMarkAsDelivered = async (orderId) => {
         try {
             const token = localStorage.getItem('admin_token');
             const config = { headers: getAdminAuthHeaders(token) };
             
-            // NOTE: orderId here is the MongoDB _id, assuming backend uses this in its PATCH route
             const response = await axios.patch(`${API_BASE_URL}/admin/orders/${orderId}/mark-delivered`, {}, config);
             
             if (response.status === 200) {
-                // 🔑 CRITICAL FIX: Use setTimeout(0) to schedule the state update, forcing an immediate re-render
-                setTimeout(() => {
-                    setOrders(prevOrders => prevOrders.map(order => 
-                        order._id === orderId ? response.data : order
-                    ));
-                }, 0); 
-
-                alert(`Order ${response.data.billNumber} status changed to DELIVERED!`);
+                const updatedOrder = response.data;
+                
+                // 🔑 ULTIMATE FIX: Create a shallow copy and replace the single item
+                setOrders(prevOrders => {
+                    const newOrders = [...prevOrders];
+                    const index = newOrders.findIndex(order => order._id === orderId);
+                    if (index !== -1) {
+                        newOrders[index] = updatedOrder;
+                    }
+                    return newOrders; // Returns a brand new array reference for guaranteed re-render
+                });
+                
+                alert(`Order ${updatedOrder.billNumber} status changed to DELIVERED!`);
             } else {
                 throw new Error('Update failed on the server.');
             }
