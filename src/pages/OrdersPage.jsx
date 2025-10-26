@@ -29,7 +29,7 @@ const getAdminAuthHeaders = (token) => ({
     'Content-Type': 'application/json',
 });
 
-// --- SparkleOverlay Component ---
+// --- SparkleOverlay Component (omitted for brevity) ---
 const SparkleOverlay = () => {
     const random = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
     const sparks = Array.from({ length: 40 }).map((_, i) => {
@@ -52,7 +52,7 @@ const SparkleOverlay = () => {
     );
 };
 
-// --- AdminSidebarNav Component ---
+// --- AdminSidebarNav Component (omitted for brevity) ---
 const AdminSidebarNav = ({ onClose }) => {
     const NavItem = ({ to, icon: Icon, name, isActive = false }) => (
         <Link to={to} className="block w-full" onClick={onClose}>
@@ -97,6 +97,7 @@ const OrdersPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isDrawerOpen, setIsDrawerOpen] = useState(false); 
     const [isCanteenOpen, setIsCanteenOpen] = useState(true);
+    const [tableKey, setTableKey] = useState(0); // 🔑 NEW STATE: Used to force re-render
 
     // --- Canteen Status Functions ---
     const fetchCanteenStatus = async () => {
@@ -162,7 +163,7 @@ const OrdersPage = () => {
 
     const handleLogout = () => { localStorage.removeItem('admin_token'); navigate('/login'); };
 
-    // --- Action: Mark As Ready (ULTIMATE FIX FOR INSTANT UPDATE) ---
+    // --- Action: Mark As Ready (FINAL FIX) ---
     const handleMarkAsReady = async (orderId) => {
         try {
             const token = localStorage.getItem('admin_token');
@@ -173,16 +174,16 @@ const OrdersPage = () => {
             if (response.status === 200) {
                 const updatedOrder = response.data;
                 
-                // 🔑 ULTIMATE FIX: Create a shallow copy and replace the single item
+                // 1. GUARANTEED IMMUTABLE UPDATE
                 setOrders(prevOrders => {
-                    const newOrders = [...prevOrders];
-                    const index = newOrders.findIndex(order => order._id === orderId);
-                    if (index !== -1) {
-                        newOrders[index] = updatedOrder;
-                    }
-                    return newOrders; // Returns a brand new array reference for guaranteed re-render
+                    return prevOrders.map(order => 
+                        order._id === orderId ? updatedOrder : order
+                    );
                 });
-                
+
+                // 2. 🔑 FORCE RE-RENDER: Change the key of the table container
+                setTableKey(prevKey => prevKey + 1);
+
                 alert(`Order ${updatedOrder.billNumber} status changed to READY!`);
 
             } else {
@@ -194,7 +195,7 @@ const OrdersPage = () => {
         }
     };
     
-    // --- Action: Mark As Delivered (ULTIMATE FIX FOR INSTANT UPDATE) ---
+    // --- Action: Mark As Delivered (FINAL FIX) ---
     const handleMarkAsDelivered = async (orderId) => {
         try {
             const token = localStorage.getItem('admin_token');
@@ -205,16 +206,16 @@ const OrdersPage = () => {
             if (response.status === 200) {
                 const updatedOrder = response.data;
                 
-                // 🔑 ULTIMATE FIX: Create a shallow copy and replace the single item
+                // 1. GUARANTEED IMMUTABLE UPDATE
                 setOrders(prevOrders => {
-                    const newOrders = [...prevOrders];
-                    const index = newOrders.findIndex(order => order._id === orderId);
-                    if (index !== -1) {
-                        newOrders[index] = updatedOrder;
-                    }
-                    return newOrders; // Returns a brand new array reference for guaranteed re-render
+                    return prevOrders.map(order => 
+                        order._id === orderId ? updatedOrder : order
+                    );
                 });
-                
+
+                // 2. 🔑 FORCE RE-RENDER: Change the key of the table container
+                setTableKey(prevKey => prevKey + 1);
+
                 alert(`Order ${updatedOrder.billNumber} status changed to DELIVERED!`);
             } else {
                 throw new Error('Update failed on the server.');
@@ -253,7 +254,7 @@ const OrdersPage = () => {
         <div className="min-h-screen bg-slate-900 font-sans relative flex">
             <SparkleOverlay />
             
-            {/* --- MOBILE DRAWER/OVERLAY --- */}
+            {/* --- MOBILE DRAWER/OVERLAY (omitted for brevity) --- */}
             <div 
                 className={`fixed inset-0 z-40 md:hidden transition-all duration-300 ${isDrawerOpen ? 'bg-black/50 pointer-events-auto' : 'bg-black/0 pointer-events-none'}`}
                 onClick={() => setIsDrawerOpen(false)}
@@ -272,7 +273,7 @@ const OrdersPage = () => {
                 </div>
             </div>
 
-            {/* --- DESKTOP SIDEBAR --- */}
+            {/* --- DESKTOP SIDEBAR (omitted for brevity) --- */}
             <aside className="hidden md:block w-64 bg-slate-800 border-r border-slate-700 sticky top-0 h-screen overflow-y-auto flex-shrink-0 z-20">
                 <div className="p-4 py-6">
                     <h1 className="text-2xl font-extrabold text-orange-400">Admin Portal</h1>
@@ -283,7 +284,7 @@ const OrdersPage = () => {
             {/* --- MAIN CONTENT AREA --- */}
             <div className="flex-grow relative z-10 min-h-screen">
             
-                {/* --- HEADER --- */}
+                {/* --- HEADER (omitted for brevity) --- */}
                 <header className="bg-gray-900 text-white shadow-lg p-4 flex justify-between items-center sticky top-0 z-30 border-b border-slate-700">
                     <div className="flex items-center space-x-3">
                         <button className="md:hidden text-white" onClick={() => setIsDrawerOpen(true)}>
@@ -332,9 +333,9 @@ const OrdersPage = () => {
                         </div>
                     </div>
                     
-                    {/* Order Table */}
+                    {/* Order Table - Now with key={tableKey} */}
                     {loading ? (<p className="text-slate-400 text-center p-10">Loading orders...</p>) : error ? (<p className="text-red-400 text-center p-10">{error}</p>) : (
-                        <div className="bg-slate-800 rounded-lg shadow-xl overflow-x-auto border border-slate-700">
+                        <div key={tableKey} className="bg-slate-800 rounded-lg shadow-xl overflow-x-auto border border-slate-700">
                             <table className="min-w-full divide-y divide-slate-700">
                                 <thead className="bg-slate-700/70">
                                     <tr>
