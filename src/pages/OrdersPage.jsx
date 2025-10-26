@@ -1,6 +1,6 @@
 /* =======================================
  * FILE: src/pages/OrdersPage.jsx
- * Admin/Chef Order Queue Management
+ * Admin/Chef Order Queue Management Component
  * ======================================= */
 
 import React, { useState, useEffect, forwardRef } from 'react'; 
@@ -19,7 +19,7 @@ import { FaPlusCircle, FaUtensils, FaChartLine } from 'react-icons/fa';
 // ================================================
 // API URL CONFIGURATION
 // ================================================
-// NOTE: Make sure your .env or configuration correctly sets VITE_API_URL
+// NOTE: Ensure your VITE_API_URL is correctly set in your environment file
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000/api';
 // ================================================
 
@@ -30,7 +30,7 @@ const getAdminAuthHeaders = (token) => ({
     'Content-Type': 'application/json',
 });
 
-// --- SparkleOverlay Component (omitted for brevity) ---
+// --- SparkleOverlay Component (Styling utility) ---
 const SparkleOverlay = () => {
     const random = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
     const sparks = Array.from({ length: 40 }).map((_, i) => {
@@ -53,7 +53,7 @@ const SparkleOverlay = () => {
     );
 };
 
-// --- AdminSidebarNav Component (omitted for brevity) ---
+// --- AdminSidebarNav Component (Navigation menu) ---
 const AdminSidebarNav = ({ onClose }) => {
     const NavItem = ({ to, icon: Icon, name, isActive = false }) => (
         <Link to={to} className="block w-full" onClick={onClose}>
@@ -99,7 +99,7 @@ const OrdersPage = () => {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false); 
     const [isCanteenOpen, setIsCanteenOpen] = useState(true);
 
-    // --- Canteen Status Functions (omitted for brevity) ---
+    // --- Canteen Status Functions ---
     const fetchCanteenStatus = async () => {
         try {
             const res = await axios.get(`${API_BASE_URL}/canteen-status/public`);
@@ -121,7 +121,7 @@ const OrdersPage = () => {
         }
     };
     
-    // --- fetchOrders ---
+    // --- fetchOrders: Fetches the list of orders from the server ---
     const fetchOrders = async () => {
         try {
             const token = localStorage.getItem('admin_token');
@@ -150,6 +150,7 @@ const OrdersPage = () => {
         fetchOrders();
         fetchCanteenStatus(); 
         
+        // Polling to automatically update the list every 30 seconds
         const interval = setInterval(() => {
             fetchOrders(); 
             fetchCanteenStatus(); 
@@ -160,13 +161,13 @@ const OrdersPage = () => {
 
     const handleLogout = () => { localStorage.removeItem('admin_token'); navigate('/login'); };
 
-    // --- Action: Mark As Ready (FINAL RELIABLE FIX: Optimistic + Re-fetch) ---
+    // --- Action: Mark As Ready (FIXED FOR INSTANT UPDATE) ---
     const handleMarkAsReady = async (orderId) => {
         try {
             const token = localStorage.getItem('admin_token');
             const config = { headers: getAdminAuthHeaders(token) };
             
-            // 1. OPTIMISTIC UPDATE (Instant visual change)
+            // 1. OPTIMISTIC UPDATE: Change state immediately for instant feedback
             setOrders(prevOrders => prevOrders.map(order => 
                 order._id === orderId ? {...order, status: 'Ready'} : order
             ));
@@ -175,9 +176,9 @@ const OrdersPage = () => {
             const response = await axios.patch(`${API_BASE_URL}/admin/orders/${orderId}/mark-ready`, {}, config);
             
             if (response.status === 200) {
-                // 3. CONFIRM & RE-FETCH: Ensures list is perfectly synchronized and sorted
+                // 3. CONFIRM & RE-FETCH: Ensures list is perfectly synchronized (guaranteed sort/filter behavior)
                 await fetchOrders(); 
-                alert(`Order ${response.data.billNumber} status confirmed as READY!`);
+                // alert(`Order ${response.data.billNumber} status confirmed as READY!`); // Removed alert for smoother UX
             } else {
                 throw new Error('Update failed on the server.');
             }
@@ -195,7 +196,7 @@ const OrdersPage = () => {
             const token = localStorage.getItem('admin_token');
             const config = { headers: getAdminAuthHeaders(token) };
             
-            // 1. OPTIMISTIC UPDATE (Instant visual change)
+            // 1. OPTIMISTIC UPDATE: Change state immediately for instant feedback
              setOrders(prevOrders => prevOrders.map(order => 
                 order._id === orderId ? {...order, status: 'Delivered'} : order
             ));
@@ -204,9 +205,9 @@ const OrdersPage = () => {
             const response = await axios.patch(`${API_BASE_URL}/admin/orders/${orderId}/mark-delivered`, {}, config);
             
             if (response.status === 200) {
-                // 3. CONFIRM & RE-FETCH: Ensures list is perfectly synchronized and sorted
+                // 3. CONFIRM & RE-FETCH: Ensures list is perfectly synchronized
                 await fetchOrders();
-                alert(`Order ${response.data.billNumber} status confirmed as DELIVERED!`);
+                // alert(`Order ${response.data.billNumber} status confirmed as DELIVERED!`); // Removed alert for smoother UX
             } else {
                 throw new Error('Update failed on the server.');
             }
@@ -218,7 +219,7 @@ const OrdersPage = () => {
         }
     };
 
-    // --- Filtering logic (omitted for brevity) ---
+    // --- Filtering logic ---
     const filteredOrders = orders
         .filter(order => {
             const status = order.status;
