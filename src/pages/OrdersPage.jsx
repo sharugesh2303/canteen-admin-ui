@@ -2,36 +2,33 @@
  * FILE: src/pages/OrdersPage.jsx
  * ======================================= */
 
-import React, { useState, useEffect, forwardRef } from 'react'; // <-- 1. Import forwardRef
+import React, { useState, useEffect, forwardRef } from 'react'; 
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 
-// ICONS from original OrdersPage
-import { LuLogOut, LuMenu, LuX } from 'react-icons/lu'; // Added LuMenu, LuX
+// ICONS
+import { LuLogOut, LuMenu, LuX } from 'react-icons/lu'; 
 import { FaCheck, FaTruck, FaClipboardList, FaSearch } from 'react-icons/fa';
-// ICONS imported from AdminDashboardPage for new layout
 import { VscFeedback } from "react-icons/vsc";
 import { MdCampaign } from "react-icons/md";
-import { FaPlusCircle, FaUtensils, FaChartLine, FaQuestionCircle } from 'react-icons/fa';
+import { FaPlusCircle, FaUtensils, FaChartLine } from 'react-icons/fa';
 
 // ================================================
 // !!! VERCEL DEPLOYMENT FIX: API URLS !!!
 // ================================================
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000/api';
 // ================================================
-// !!! END OF FIX !!!
-// ================================================
 
 
-// --- Helper function for Authorization Header (from AdminDashboardPage) ---
+// --- Helper function for Authorization Header ---
 const getAdminAuthHeaders = (token) => ({
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json',
 });
 
-// --- SparkleOverlay Component (from AdminDashboardPage) ---
+// --- SparkleOverlay Component ---
 const SparkleOverlay = () => {
     const random = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
     const sparks = Array.from({ length: 40 }).map((_, i) => {
@@ -54,9 +51,8 @@ const SparkleOverlay = () => {
     );
 };
 
-// --- AdminSidebarNav Component (from AdminDashboardPage) ---
+// --- AdminSidebarNav Component ---
 const AdminSidebarNav = ({ onClose }) => {
-    const navigate = useNavigate();
     const NavItem = ({ to, icon: Icon, name, isActive = false }) => (
         <Link to={to} className="block w-full" onClick={onClose}>
             <button className={`w-full flex items-center p-3 rounded-lg transition-colors duration-200 space-x-3 text-left ${
@@ -72,26 +68,25 @@ const AdminSidebarNav = ({ onClose }) => {
         <div className="space-y-2 p-4 pt-0">
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-700 pb-2">Actions</h3>
             <NavItem to="/menu" icon={FaUtensils} name="Menu Management" />
-            <NavItem to="/orders" icon={FaClipboardList} name="Orders" isActive={true} /> {/* <-- SET TO ACTIVE */}
+            <NavItem to="/orders" icon={FaClipboardList} name="Orders" isActive={true} /> 
             <NavItem to="/revenue" icon={FaChartLine} name="Revenue & Sales" />
             <NavItem to="/feedback" icon={VscFeedback} name="Student Feedback" />
             <NavItem to="/advertisement" icon={MdCampaign} name="Ads Management" />
             
             <div className="pt-4 border-t border-slate-700 mt-4">
-                <button 
-                    onClick={() => { navigate('/admin/menu/add'); onClose(); }} 
-                    className="w-full flex items-center p-3 rounded-lg transition-colors duration-200 space-x-3 text-left bg-green-600 text-white hover:bg-green-700 shadow-md"
-                >
-                    <FaPlusCircle size={20} className="flex-shrink-0" />
-                    <span className="font-bold">Add New Menu Item</span>
-                </button>
+                <Link to="/admin/menu/add" className="block w-full" onClick={onClose}>
+                    <button className="w-full flex items-center p-3 rounded-lg transition-colors duration-200 space-x-3 text-left bg-green-600 text-white hover:bg-green-700 shadow-md">
+                        <FaPlusCircle size={20} className="flex-shrink-0" />
+                        <span className="font-bold">Add New Menu Item</span>
+                    </button>
+                </Link>
             </div>
         </div>
     );
 };
 
 
-// --- Main OrdersPage Component (Modified) ---
+// --- Main OrdersPage Component ---
 const OrdersPage = () => {
     const navigate = useNavigate();
     const [orders, setOrders] = useState([]);
@@ -99,19 +94,18 @@ const OrdersPage = () => {
     const [error, setError] = useState(null);
     const [filter, setFilter] = useState('All');
     const [searchTerm, setSearchTerm] = useState('');
-    // --- NEW STATE from AdminDashboardPage ---
     const [isDrawerOpen, setIsDrawerOpen] = useState(false); 
     const [isCanteenOpen, setIsCanteenOpen] = useState(true);
 
-    // --- NEW: Canteen Status Functions (from AdminDashboardPage) ---
+    // --- Canteen Status Functions ---
     const fetchCanteenStatus = async () => {
         try {
-            // Use API_BASE_URL
             const res = await axios.get(`${API_BASE_URL}/canteen-status/public`);
             setIsCanteenOpen(res.data.isOpen);
             return res.data.isOpen;
         } catch (err) { console.warn("Could not fetch canteen status."); setIsCanteenOpen(false); return false; }
     };
+    
     const handleToggleCanteen = async () => {
         const token = localStorage.getItem('admin_token');
         if (!token) {
@@ -120,7 +114,6 @@ const OrdersPage = () => {
             return;
         }
         try {
-            // Use API_BASE_URL
             const response = await axios.patch(`${API_BASE_URL}/admin/canteen-status`,
                 {},
                 { headers: getAdminAuthHeaders(token) } 
@@ -133,14 +126,12 @@ const OrdersPage = () => {
         }
     };
 
-    // --- MODIFIED: fetchOrders (Uses new Auth & API_BASE_URL) ---
+    // --- fetchOrders ---
     const fetchOrders = async () => {
-        // Not setting loading to true here to allow silent refresh
         try {
             const token = localStorage.getItem('admin_token');
             if (!token) { navigate('/login'); return; }
             const config = { headers: getAdminAuthHeaders(token) };
-            // Use API_BASE_URL
             const response = await axios.get(`${API_BASE_URL}/admin/orders`, config);
             setOrders(response.data);
         } catch (err) {
@@ -151,60 +142,68 @@ const OrdersPage = () => {
                 setError('Failed to fetch orders.');
             }
             console.error(err);
-        } finally { setLoading(false); } // Only set loading false on initial load/error
+        } finally { setLoading(false); } 
     };
     
-    // --- MODIFIED: useEffect (fetches status too) ---
+    // --- useEffect with Polling ---
     useEffect(() => {
-        setLoading(true); // Set loading true on first mount
+        setLoading(true); 
         fetchOrders();
-        fetchCanteenStatus(); // Fetch status on mount
+        fetchCanteenStatus(); 
         
         const interval = setInterval(() => {
-            fetchOrders(); // Silently refresh orders
-            fetchCanteenStatus(); // Silently refresh status
+            fetchOrders(); 
+            fetchCanteenStatus(); 
         }, 30000); 
 
         return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [navigate]);
 
     const handleLogout = () => { localStorage.removeItem('admin_token'); navigate('/login'); };
 
-    // --- MODIFIED: handleMarkAsReady (Uses new Auth & API_BASE_URL) ---
+    // --- Action: Mark As Ready (FIXED FOR INSTANT UPDATE) ---
     const handleMarkAsReady = async (orderId) => {
         try {
             const token = localStorage.getItem('admin_token');
             const config = { headers: getAdminAuthHeaders(token) };
-            // Use API_BASE_URL
+            
+            // NOTE: The backend route should be patched to use the Bill Number, 
+            // but this front-end code uses the MongoDB _id (orderId) as per the function signature.
+            // If backend uses billNumber, the API path must be changed here.
             const response = await axios.patch(`${API_BASE_URL}/admin/orders/${orderId}/mark-ready`, {}, config);
             
             if (response.status === 200) {
-                setOrders(orders.map(order => order._id === orderId ? response.data : order));
+                // FIX: Update state immediately with the response data (new status)
+                setOrders(prevOrders => prevOrders.map(order => 
+                    order._id === orderId ? response.data : order
+                ));
             } else {
                 throw new Error('Update failed on the server.');
             }
         } catch (err) {
-            alert('Failed to update order status to Ready. Check backend route.');
+            alert(`Failed to update order status to Ready. Error: ${err.response?.data?.msg || err.message}`);
             console.error('Mark Ready Error:', err.response?.data || err.message);
         }
     };
     
-    // --- MODIFIED: handleMarkAsDelivered (Uses new Auth & API_BASE_URL) ---
+    // --- Action: Mark As Delivered (FIXED FOR INSTANT UPDATE) ---
     const handleMarkAsDelivered = async (orderId) => {
         try {
             const token = localStorage.getItem('admin_token');
             const config = { headers: getAdminAuthHeaders(token) };
-            // Use API_BASE_URL
+            
             const response = await axios.patch(`${API_BASE_URL}/admin/orders/${orderId}/mark-delivered`, {}, config);
             
             if (response.status === 200) {
-                 setOrders(orders.map(order => order._id === orderId ? response.data : order));
+                // FIX: Update state immediately with the response data (new status)
+                setOrders(prevOrders => prevOrders.map(order => 
+                    order._id === orderId ? response.data : order
+                ));
             } else {
-                 throw new Error('Update failed on the server.');
+                throw new Error('Update failed on the server.');
             }
         } catch (err) {
-            alert('Failed to update order status to Delivered. ENSURE BACKEND ROUTE IS PATCH /orders/:orderId/mark-delivered');
+            alert(`Failed to update order status to Delivered. Error: ${err.response?.data?.msg || err.message}`);
             console.error('Mark Delivered Error:', err.response?.data || err.message);
         }
     };
@@ -220,7 +219,7 @@ const OrdersPage = () => {
             if (filter === 'Delivered') return normalizedStatus === 'Delivered';
             return false;
         })
-        .filter(order => (order.billNumber || '').toLowerCase().includes(searchTerm.toLowerCase())); // Added safeguard for billNumber
+        .filter(order => (order.billNumber || '').toLowerCase().includes(searchTerm.toLowerCase())); 
 
     const getStatusBadge = (status) => {
         switch (status) {
@@ -232,12 +231,12 @@ const OrdersPage = () => {
     };
     
 
-    // --- RETURN: MODIFIED with AdminDashboardPage layout ---
+    // --- RETURN: Layout ---
     return (
         <div className="min-h-screen bg-slate-900 font-sans relative flex">
             <SparkleOverlay />
             
-            {/* --- MOBILE DRAWER/OVERLAY (from AdminDashboardPage) --- */}
+            {/* --- MOBILE DRAWER/OVERLAY --- */}
             <div 
                 className={`fixed inset-0 z-40 md:hidden transition-all duration-300 ${isDrawerOpen ? 'bg-black/50 pointer-events-auto' : 'bg-black/0 pointer-events-none'}`}
                 onClick={() => setIsDrawerOpen(false)}
@@ -256,7 +255,7 @@ const OrdersPage = () => {
                 </div>
             </div>
 
-            {/* --- DESKTOP SIDEBAR (from AdminDashboardPage) --- */}
+            {/* --- DESKTOP SIDEBAR --- */}
             <aside className="hidden md:block w-64 bg-slate-800 border-r border-slate-700 sticky top-0 h-screen overflow-y-auto flex-shrink-0 z-20">
                 <div className="p-4 py-6">
                     <h1 className="text-2xl font-extrabold text-orange-400">Admin Portal</h1>
@@ -264,17 +263,15 @@ const OrdersPage = () => {
                 <AdminSidebarNav onClose={() => {}} />
             </aside>
 
-            {/* --- MAIN CONTENT AREA (Wrapper from AdminDashboardPage) --- */}
+            {/* --- MAIN CONTENT AREA --- */}
             <div className="flex-grow relative z-10 min-h-screen">
             
-                {/* --- NEW HEADER (from AdminDashboardPage, modified) --- */}
+                {/* --- NEW HEADER --- */}
                 <header className="bg-gray-900 text-white shadow-lg p-4 flex justify-between items-center sticky top-0 z-30 border-b border-slate-700">
                     <div className="flex items-center space-x-3">
-                        {/* Hamburger Button for mobile */}
                         <button className="md:hidden text-white" onClick={() => setIsDrawerOpen(true)}>
                             <LuMenu size={24} />
                         </button>
-                        {/* Page Title */}
                         <div className="flex items-center gap-2">
                             <FaClipboardList size={20} className="text-orange-400" />
                             <div className="text-xl font-extrabold text-orange-400 hidden md:block">Order Management</div>
@@ -295,20 +292,20 @@ const OrdersPage = () => {
                     </div>
                 </header>
                 
-                {/* --- Original <main> content from OrdersPage --- */}
+                {/* --- Main Content --- */}
                 <main className="container mx-auto p-4 md:p-8">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
                         <h2 className="text-4xl font-bold text-slate-100 mb-4 md:mb-0">Placed Orders</h2>
                         <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full md:w-auto">
                             
-                            {/* Search Input (Unchanged) */}
+                            {/* Search Input */}
                             <div className="relative w-full md:w-64">
                                 <input type="text" placeholder="Search by Bill Number..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} 
                                     className="p-2 pl-10 border border-slate-600 rounded-lg w-full bg-slate-800 text-lg text-white placeholder-slate-400 focus:ring-1 focus:ring-orange-500"/>
                                 <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
                             </div>
 
-                            {/* Filter Buttons (Unchanged) */}
+                            {/* Filter Buttons */}
                             <div className="flex space-x-2 bg-slate-700 p-1 rounded-lg shadow-inner">
                                 <button onClick={() => setFilter('All')} className={`px-4 py-2 rounded-md text-base font-semibold transition-colors ${filter === 'All' ? 'bg-orange-500 text-white shadow-md' : 'text-slate-300 hover:bg-slate-600'}`}>All</button>
                                 <button onClick={() => setFilter('Paid')} className={`px-4 py-2 rounded-md text-base font-semibold transition-colors ${filter === 'Paid' ? 'bg-orange-500 text-white shadow-md' : 'text-slate-300 hover:bg-slate-600'}`}>New (Paid)</button>
@@ -318,7 +315,7 @@ const OrdersPage = () => {
                         </div>
                     </div>
                     
-                    {/* Order Table (Unchanged) */}
+                    {/* Order Table */}
                     {loading ? (<p className="text-slate-400 text-center p-10">Loading orders...</p>) : error ? (<p className="text-red-400 text-center p-10">{error}</p>) : (
                         <div className="bg-slate-800 rounded-lg shadow-xl overflow-x-auto border border-slate-700">
                             <table className="min-w-full divide-y divide-slate-700">
@@ -339,12 +336,13 @@ const OrdersPage = () => {
                                             <td className="px-6 py-4 whitespace-nowrap font-mono text-lg text-slate-300">{order.billNumber}</td>
                                             <td className="px-6 py-4 whitespace-nowrap font-medium text-lg text-slate-100">{order.studentName}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-base text-slate-400">{new Date(order.orderDate).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}</td>
-                                            <td className="px-6 py-4 whitespace-nowGrap text-base text-slate-400">
+                                            <td className="px-6 py-4 whitespace-nowrap text-base text-slate-400">
                                                 {order.items.reduce((sum, item) => sum + item.quantity, 0)}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap font-bold text-lg text-orange-400">₹{order.totalAmount.toFixed(2)}</td>
                                             <td className="px-6 py-4 whitespace-nowrap"><span className={`px-3 py-1 inline-flex text-base leading-5 font-semibold rounded-full ${getStatusBadge(order.status)}`}>{order.status}</span></td>
                                             <td className="px-6 py-4 whitespace-nowrap text-base font-medium">
+                                                {/* Button Logic */}
                                                 {order.status === 'Paid' && (
                                                     <button onClick={() => handleMarkAsReady(order._id)} className="px-4 py-2 bg-purple-500 text-white text-sm font-semibold rounded-lg hover:bg-purple-600 flex items-center space-x-1 transition duration-150 active:scale-95">
                                                         <FaTruck size={12} /> <span>Mark Ready</span>
